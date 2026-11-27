@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MascotasPanel</string>
+    <string name="shortcut_server">Change server</string>
+    <string name="shortcut_novedades">What\'s new and version</string>
+</resources>

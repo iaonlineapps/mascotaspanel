@@ -1,0 +1,27 @@
+services:
+  mascotaspanel:
+    build: .
+    image: mascotaspanel:latest
+    container_name: mascotaspanel
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      - "${PORT:-8093}:8093"
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ALLOW_REGISTER=${ALLOW_REGISTER:-1}
+      - MAX_PETS=${MAX_PETS:-20}
+      - PUBLIC_URL=${PUBLIC_URL:-}
+      - OWNER_NAME=${OWNER_NAME:-}
+      - CONTACT_EMAIL=${CONTACT_EMAIL:-}
+    volumes:
+      # Todos los datos: config/ (base de datos) y fotos/
+      - ${DATA_DIR:-./data}:/data
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"

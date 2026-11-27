@@ -1,0 +1,7 @@
+{
+ "version": "1.1",
+ "apk": "https://github.com/iaonlineapps/mascotaspanel/raw/main/android/dist/MascotasPanel.apk",
+ "page": "https://github.com/iaonlineapps/mascotaspanel#app-para-android",
+ "notes": "- Nuevo icono de MascotasPanel.\n- El aviso de versión nueva ya funciona.\n- Asociaciones, animales en adopción y enlaces de Google Maps en los pipicanes.",
+ "notes_en": "- New MascotasPanel icon.\n- The new-version warning now works.\n- Associations, animals up for adoption and Google Maps links for dog parks."
+}

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MascotasPanel · Panel</title>
+<meta name="theme-color" content="#ea580c">
+<link rel="icon" href="/static/icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?web=1">
+<link rel="manifest" href="/static/manifest.webmanifest?web=1">
+<meta name="apple-mobile-web-app-title" content="Mascotas Web">
+<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/theme.js"></script>
+</head>
+<body>
+
+<!-- Entrar / crear cuenta -->
+<section class="auth" id="auth" hidden>
+ <a class="brand" href="/"><img class="logo" src="/static/icons/logo-128.png" width="64" height="64" alt=""></a>
+ <h1 translate="no">Mascotas<b>Panel</b></h1>
+ <p class="hint" id="authLead">Registro libre de mascotas.</p>
+ <div id="authAccs" hidden>
+  <p class="accsec">Elige una cuenta</p>
+  <div id="authAccList"></div>
+  <p class="hint accor">o entra con otra cuenta</p>
+ </div>
+ <form id="authForm">
+  <div id="regFields" hidden>
+   <div class="seg kind" role="group" aria-label="Tipo de cuenta" id="uKind"><button type="button" data-kind="person" class="on">🙋 Soy una persona</button><button type="button" data-kind="org">🏡 Soy una asociación o protectora</button></div>
+   <div id="orgFields" hidden>
+    <label for="uOrg">Nombre de la asociación o protectora</label>
+    <input id="uOrg" maxlength="80" placeholder="Protectora Huellas de Valencia">
+    <p class="hint">Podrás publicar animales en adopción cuando el administrador verifique la asociación.</p>
+   </div>
+   <label for="uNameR" id="uNameLbl">Tu nombre <span class="opt">(solo el nombre, sin apellidos)</span></label>
+   <input id="uNameR" maxlength="40" autocomplete="given-name" placeholder="Laura">
+   <label for="uUser">Usuario</label>
+   <input id="uUser" maxlength="32" autocomplete="username" autocapitalize="off" placeholder="laura22">
+   <p class="hint">De 3 a 32 letras o números, sin espacios. Es con el que entrarás.</p>
+   <label for="uEmail">Correo electrónico</label>
+   <input id="uEmail" type="email" autocomplete="email" autocapitalize="off">
+   <label for="uPhone">Teléfono <span class="opt">(opcional)</span></label>
+   <input id="uPhone" type="tel" maxlength="30" autocomplete="tel" placeholder="+34 600 123 456">
+   <p class="hint">No se enseña a nadie. Solo saldría en la ficha y en el cartel de una mascota perdida si tú das tu permiso.</p>
+   <label for="uZone">Zona o localidad <span class="opt">(opcional, aproximada)</span></label>
+   <input id="uZone" maxlength="80" placeholder="Valencia, zona Benimaclet">
+   <p class="hint">No pongas tu dirección exacta: basta con la ciudad o el barrio.</p>
+  </div>
+  <div id="loginFields">
+   <label for="uLogin">Usuario o correo</label>
+   <input id="uLogin" autocomplete="username" autocapitalize="off">
+  </div>
+  <label for="uPass">Contraseña</label>
+  <input id="uPass" type="password" autocomplete="current-password" required>
+  <div id="acceptRow" hidden>
+   <p class="legalbox" data-i18n="legalbox"><b>Información básica sobre protección de datos.</b> Responsable: el administrador de este servidor. Finalidad: gestionar tu cuenta y las fichas de tus mascotas. Base legal: tu consentimiento. No se ceden datos a nadie. Puedes acceder, rectificar, borrar y descargar tus datos cuando quieras desde «Mi cuenta». Más información en la <a href="/privacidad">política de privacidad</a>.</p>
+   <label class="inline"><input type="checkbox" id="uAge"> <span data-i18n="age">Tengo 14 años o más</span></label>
+   <label class="inline"><input type="checkbox" id="uAccept"> <span data-i18n="accept">Acepto la <a href="/privacidad">política de privacidad</a> y que se guarden estos datos para el registro</span></label>
+  </div>
+  <div class="err" id="authErr" role="alert"></div>
+  <div class="row"><button type="submit" id="authBtn">Entrar</button><button type="button" class="ghost" id="authSwitch">Crear cuenta</button></div>
+  <button type="button" class="linkbtn" id="forgotBtn">¿Has olvidado tu usuario o contraseña?</button>
+  <button type="button" class="ghost" id="authCancel" hidden>Cancelar y volver a mi cuenta</button>
+ </form>
+ <form id="recForm" hidden>
+  <h2>Recuperar la cuenta</h2>
+  <p class="hint" data-i18n="recHint">Necesitas el <b>código de recuperación</b> que te dio la app al registrarte (por ejemplo ABCD-EFGH-JKLM). Si no lo tienes, pídele al administrador que te ponga una contraseña nueva.</p>
+  <label for="rLogin">Tu correo o tu usuario <span class="opt">(si te acuerdas)</span></label>
+  <input id="rLogin" autocapitalize="off">
+  <label for="rCode">Código de recuperación</label>
+  <input id="rCode" autocapitalize="characters" autocomplete="off" placeholder="ABCD-EFGH-JKLM" required>
+  <label for="rPass">Contraseña nueva</label>
+  <input id="rPass" type="password" autocomplete="new-password" minlength="8" required>
+  <div class="err" id="recErr" role="alert"></div>
+  <div class="row"><button type="submit">Recuperar</button><button type="button" class="ghost" id="recBack">Volver</button></div>
+ </form>
+ <div class="seg lang" role="group" aria-label="Idioma"><button type="button" data-lang="es">Español</button><button type="button" data-lang="en">English</button></div>
+ <p class="hint"><a href="/">← Ver las mascotas perdidas</a></p>
+</section>
+
+<!-- Panel -->
+<div id="app" hidden>
+ <header class="top">
+  <a class="brand" href="/panel"><img class="logo" src="/static/icons/logo-64.png" srcset="/static/icons/logo-128.png 2x" width="32" height="32" alt=""><span translate="no">Mascotas<b>Panel</b></span></a>
+  <a class="btn ghost" href="/" id="openPublic">Ver el registro</a>
+  <button type="button" class="vchip" id="vChip" title="Ver novedades"></button>
+  <div class="accwrap">
+   <button type="button" class="ghost" id="accBtn" aria-haspopup="true" aria-expanded="false" title="Tu cuenta"><span class="accav" id="accAv" translate="no"></span><span id="accName" translate="no"></span></button>
+   <div class="accmenu" id="accMenu" hidden>
+    <div class="accme" id="accMe"></div>
+    <div class="accsec" id="accSec" hidden>Cambiar a</div>
+    <div id="accList"></div>
+    <button type="button" class="ghost" id="accAdd">+ Añadir otra cuenta o cambiar de usuario</button>
+    <hr>
+    <button type="button" class="ghost" data-go="account">⚙️ Ajustes de mi cuenta</button>
+    <button type="button" class="ghost" data-go="looks">🎨 Apariencia (color, claro u oscuro)</button>
+    <button type="button" class="ghost" data-go="pwSec">🔑 Cambiar contraseña</button>
+    <button type="button" class="ghost" data-go="pets">🐾 Mis mascotas</button>
+    <button type="button" class="ghost" data-go="inbox">✉️ Avisos</button>
+    <button type="button" class="ghost" data-go="parks">🌳 Busca tu pipicán</button>
+    <button type="button" class="ghost" data-go="admin" id="goAdmin" hidden>🛠️ Administración</button>
+    <button type="button" class="ghost" id="accReload" hidden>🔄 Recargar la página</button>
+    <a class="btn ghost" id="accApp" href="https://github.com/iaonlineapps/mascotaspanel/raw/main/android/dist/MascotasPanel.apk" rel="noopener">📱 Descargar la app (solo Android)</a>
+    <hr>
+    <button type="button" class="ghost" id="logout">Salir</button>
+    <button type="button" class="ghost" id="logoutAll" hidden>Salir de todas las cuentas</button>
+   </div>
+  </div>
+ </header>
+ <nav class="tabs" id="tabs" aria-label="Secciones">
+  <button data-tab="home" class="sel">🏠 Inicio</button>
+  <button data-tab="admin" id="adminTab" hidden>📊 Administración</button>
+  <span class="tabgap"></span>
+  <button data-tab="pets">Mis mascotas</button>
+  <button data-tab="inbox">Avisos <span class="nbadge" id="nBadge" hidden></span></button>
+  <button data-tab="parks">Pipicanes</button>
+  <button data-tab="account">Mi cuenta</button>
+ </nav>
+
+ <main class="wrap">
+  <!-- Inicio de cada persona -->
+  <div data-pane="home">
+   <div class="dhead"><div><h2 id="hHello">Hola</h2><p class="hint" id="hSub"></p></div></div>
+   <div class="trlist" id="trHome"></div>
+   <div class="kpis hk" id="hKpis"></div>
+   <section class="card review" id="hReview" hidden><div class="whead"><h3>🛎️ <span>Por revisar</span> <span class="nbadge" data-rn></span></h3></div>
+    <p class="hint">Lo que la gente ha mandado y espera a que lo apruebes. Toca el nombre para verlo antes.</p><div class="rlist" data-rl></div></section>
+
+   <section class="card wanted">
+    <div class="whead"><h3>🚨 Se buscan</h3>
+     <div class="seg" id="hSp" role="group" aria-label="Animal"><button type="button" data-s="" class="on">Todos</button><button type="button" data-s="perro">🐶 Perros</button><button type="button" data-s="gato">🐱 Gatos</button><button type="button" data-s="otro">🐾 Otros</button></div></div>
+    <p class="hint" data-i18n="hWantedHint">Mascotas que su familia está buscando ahora. Si ves alguna, entra en su ficha y avisa: tu contacto no se enseña.</p>
+    <div class="wgrid" id="hWanted"></div>
+    <a class="small" href="/?ver=perdidas">Ver todas en la web →</a>
+   </section>
+   <section class="card recent" id="hRecent" hidden>
+    <div class="whead"><h3>🐾 Mascotas registradas</h3></div>
+    <div class="regstats" id="hCounts"></div>
+    <div class="ticker" aria-label="Últimos registros"><div class="tktrack" id="hTicker"></div></div>
+   </section>
+   <section class="adopt card" id="hAdopt" hidden><div class="adhead"><h3>🏡 En adopción · <span>¿Me adoptas?</span></h3><a href="/adopta">Ver todos →</a></div><div class="adrow" id="hAdoptRow"></div></section>
+  </div>
+
+  <!-- Lista de mascotas -->
+  <div data-pane="pets" hidden>
+   <div class="trlist" id="trPets"></div>
+   <div class="head"><h2>Mis mascotas</h2><button type="button" id="addPet">+ Añadir mascota</button></div>
+   <div class="cards" id="petList"></div>
+   <section class="adopt" id="adoptStrip" hidden><div class="adhead"><h3>🏡 En adopción · <span>¿Me adoptas?</span></h3><a href="/adopta">Ver todos →</a></div><div class="adrow" id="adoptRow"></div></section>
+  </div>
+
+  <!-- Ficha de una mascota -->
+  <div data-pane="pet" hidden>
+   <button type="button" class="ghost small" id="backPets">← Mis mascotas</button>
+   <div class="sosbar" id="sosBar" hidden></div>
+   <div class="petgrid">
+    <form id="petForm" class="card">
+     <h2 id="petTitle">Nueva mascota</h2>
+     <div class="photoedit">
+      <div class="ph" id="pPhoto"><span>🐾</span></div>
+      <div>
+       <label class="btn ghost small filebtn"><span id="pPhotoLbl">Subir foto</span><input type="file" id="pPhotoIn" accept="image/png,image/jpeg,image/webp"></label>
+       <button type="button" class="ghost small" id="pPhotoDel" hidden>Quitar foto</button>
+       <p class="hint">Una foto clara de la cara y el cuerpo. Se reduce sola antes de subirla.</p>
+      </div>
+     </div>
+     <label for="pName">Nombre</label>
+     <input id="pName" maxlength="40" required placeholder="Toby">
+     <div class="two">
+      <div><label for="pSpecies">Animal</label>
+       <select id="pSpecies"><option value="perro">🐶 Perro</option><option value="gato">🐱 Gato</option><option value="conejo">🐰 Conejo</option><option value="huron">🦦 Hurón</option><option value="pajaro">🐦 Pájaro</option><option value="loro">🦜 Loro</option><option value="gallina">🐔 Gallina</option><option value="hamster">🐹 Hámster</option><option value="cobaya">🐹 Cobaya</option><option value="raton">🐭 Ratón o rata</option><option value="erizo">🦔 Erizo</option><option value="tortuga">🐢 Tortuga</option><option value="reptil">🦎 Reptil</option><option value="pez">🐟 Pez</option><option value="caballo">🐴 Caballo</option><option value="burro">🐴 Burro</option><option value="cerdo">🐷 Cerdo</option><option value="cabra">🐐 Cabra u oveja</option><option value="otro">🐾 Otro</option></select></div>
+      <div><label for="pBreed">Raza <span class="opt">(opcional)</span></label><input id="pBreed" maxlength="60" placeholder="Mestizo"></div>
+     </div>
+     <div class="two">
+      <div><label for="pSex">Sexo</label><select id="pSex"><option value="">—</option><option value="macho">Macho</option><option value="hembra">Hembra</option></select></div>
+      <div><label for="pSize">Tamaño</label><select id="pSize"><option value="">—</option><option value="pequeno">Pequeño</option><option value="mediano">Mediano</option><option value="grande">Grande</option></select></div>
+     </div>
+     <div class="two">
+      <div><label for="pAge">Edad <span class="opt">(opcional)</span></label><input id="pAge" maxlength="30" placeholder="3 años"></div>
+      <div><label for="pChip">Microchip <span class="opt">(opcional)</span></label><input id="pChip" maxlength="30" inputmode="numeric"></div>
+     </div>
+     <div class="chipok" id="chipBox" hidden>
+      <label class="inline"><input type="checkbox" id="pChipOk"> Doy mi consentimiento para que se guarde el número de microchip <span class="opt">(es un dato protegido: no se enseña a nadie; solo lo ves tú y el administrador del servidor)</span></label>
+      <label class="inline"><input type="checkbox" id="pChipSearch"> Que quien tenga el número completo del chip (por ejemplo, un veterinario) pueda encontrar su ficha en el buscador <span class="opt">(el número no se muestra nunca)</span></label>
+     </div>
+     <label for="pColor">Color y señas</label>
+     <input id="pColor" maxlength="120" placeholder="Marrón con una mancha blanca en el pecho">
+     <label for="pNotes">Cómo es <span class="opt">(opcional)</span></label>
+     <textarea id="pNotes" rows="2" maxlength="600" placeholder="Es miedoso, no le persigas. Responde a su nombre."></textarea>
+     <label for="pHealth">Salud <span class="opt">(opcional)</span></label>
+     <textarea id="pHealth" rows="2" maxlength="400" placeholder="Toma una pastilla al día para el corazón"></textarea>
+     <label class="inline" hidden><input type="checkbox" id="pPublic"> Que salga en el registro público <span class="opt">(opcional: foto, nombre y raza; nunca tus datos. Si no lo marcas, solo la ves tú; si se pierde, el aviso sí sale para todos)</span></label>
+     <fieldset class="contact"><legend>Tu teléfono</legend>
+      <label class="inline"><input type="radio" name="pContact" value="never" checked> No enseñarlo nunca <span class="opt">(recomendado: quien la encuentre escanea el QR y te manda un aviso, que te llega a «Avisos»)</span></label>
+      <label class="inline"><input type="radio" name="pContact" value="lost"> Doy mi consentimiento para que se vean mi teléfono y mi nombre en su ficha y en el cartel «Se busca», solo mientras esté perdida</label>
+     </fieldset>
+     <fieldset class="contact"><legend>Segunda persona de contacto <span class="opt">(opcional)</span></legend>
+      <p class="hint">Por ejemplo, tu pareja o tu hija. Pídele permiso antes. Sigue las mismas reglas que tu teléfono: solo se ve si das tu consentimiento arriba y mientras esté perdida.</p>
+      <div class="two">
+       <div><label for="pC2Name">Su nombre</label><input id="pC2Name" maxlength="40" placeholder="Marta"></div>
+       <div><label for="pC2Phone">Su teléfono</label><input id="pC2Phone" type="tel" maxlength="30" placeholder="+34 611 222 333"></div>
+      </div>
+      <label class="inline" id="c2okRow" hidden><input type="checkbox" id="pC2Ok"> Esta persona me ha dado permiso para poner su nombre y su teléfono</label>
+     </fieldset>
+     <fieldset class="contact adoptbox" id="adoptBox" hidden><legend>🏡 En adopción</legend>
+      <p class="hint" id="adoptHint">Sale en «Adopción», en el carrusel «¿Me adoptas?» y en la página de tu asociación, con tus datos de contacto públicos.</p>
+      <label class="inline"><input type="checkbox" id="pAdopt"> Este animal busca familia</label>
+      <label for="pAdoptText">Su mensaje <span class="opt">(lo que diría si hablara)</span></label>
+      <textarea id="pAdoptText" rows="2" maxlength="300" placeholder="¡Hola! Soy muy cariñoso y me encanta pasear. ¿Me adoptas?"></textarea>
+     </fieldset>
+     <div class="err" id="pErr" role="alert"></div>
+     <div class="row"><button type="submit" id="pSave">Guardar</button><button type="button" class="danger" id="pDelete" hidden>Borrar ficha</button></div>
+     <details class="xfer" id="xferBox" hidden><summary>👤 Pasar esta ficha a otra cuenta</summary>
+      <p class="hint" id="xHint">Se pasa todo tal cual: la foto, el QR (la placa sigue valiendo), el cartel y sus avisos. La otra cuenta tiene que aceptarlo.</p>
+      <div class="xrow"><input id="xTo" placeholder="Usuario o correo de la otra cuenta" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Usuario o correo de la otra cuenta"><button type="button" id="xSend">Pasar ficha</button></div>
+      <div class="xwait" id="xWait" hidden><span id="xState"></span> <button type="button" class="ghost small" id="xCancel">Cancelar</button></div>
+      <div class="err" id="xErr" role="alert"></div>
+     </details>
+    </form>
+
+    <div class="side" id="petSide" hidden>
+     <section class="card lostcard" id="lostCard">
+      <h2>¿Se ha perdido?</h2>
+      <p class="hint" id="lostState"></p>
+      <div id="lostFields">
+       <label for="lZone">Dónde se perdió</label>
+       <input id="lZone" maxlength="120" placeholder="Parque de Cabecera, Valencia">
+       <label>Dónde se perdió en el mapa <span class="opt">(opcional)</span></label>
+       <div class="mapsearch"><input id="lSearch" placeholder="Busca una calle, un barrio o un pueblo" aria-label="Buscar en el mapa"><button type="button" class="ghost small" id="lFind">Buscar</button><button type="button" class="ghost small" id="lHere">📍 Estoy aquí</button></div>
+       <div class="map" id="lMap"></div>
+       <p class="hint" id="lMapHint">Toca el mapa en el sitio donde se perdió. Se guarda aproximado (unos 100 m), no tu casa.</p>
+       <button type="button" class="ghost small" id="lClear" hidden>Quitar el punto del mapa</button>
+       <label for="lNote">Aviso <span class="opt">(opcional)</span></label>
+       <input id="lNote" maxlength="300" placeholder="Lleva collar rojo. No le persigas, llámame.">
+       <label for="lReward">Recompensa <span class="opt">(opcional)</span></label>
+       <input id="lReward" maxlength="60" placeholder="Se gratificará">
+      </div>
+      <div class="row"><button type="button" class="on" id="lostBtn">Marcar como perdida</button><button type="button" class="ok" id="foundBtn" hidden>¡Ya está en casa!</button></div>
+     </section>
+
+     <section class="card sharecard" id="shareCard" hidden>
+      <h2 id="shTitle">Compartir el aviso</h2>
+      <p class="hint">Te dejamos el anuncio ya escrito. Cópialo y pégalo en tu post de Facebook, en un grupo de tu barrio o donde quieras. El enlace lleva a su ficha, con su foto, y quien lo vea puede avisarte sin ver tu teléfono.</p>
+      <textarea id="shText" rows="9" aria-label="Texto del anuncio"></textarea>
+      <div class="row"><button type="button" id="shCopyText">📋 Copiar texto</button><button type="button" class="ghost" id="shCopyLink">🔗 Copiar enlace</button></div>
+      <div class="shbtns">
+       <a class="sb fb" id="shFb" target="_blank" rel="noopener">Facebook</a>
+       <a class="sb wa" id="shWa" target="_blank" rel="noopener">WhatsApp</a>
+       <a class="sb tg" id="shTg" target="_blank" rel="noopener">Telegram</a>
+       <a class="sb x" id="shX" target="_blank" rel="noopener">X</a>
+       <a class="sb mail" id="shMail">✉️ Correo</a>
+       <button type="button" class="sb more" id="shNative" hidden>📤 Compartir con foto</button>
+      </div>
+      <p class="hint" id="shFbHint">Facebook solo deja poner el enlace: al pulsar el botón copiamos el texto para que lo pegues en el post.</p>
+      <h3>Instagram y TikTok</h3>
+      <p class="hint">Instagram y TikTok no dejan poner enlaces en los posts. Al pulsar, se descarga la imagen (con su foto y el QR) y se copia el texto: abre la app, sube la imagen y pega el texto. En Instagram, el enlace puedes ponerlo en una historia con la pegatina «Enlace».</p>
+      <div class="row"><button type="button" class="sb ig" id="shInsta">📸 Instagram</button><button type="button" class="sb tt" id="shTikTok">🎵 TikTok</button></div>
+     </section>
+
+     <section class="card">
+      <h2>Cartel «Se busca»</h2>
+      <div class="two">
+       <div><label for="cHead">Título</label><select id="cHead"></select></div>
+       <div><label for="cSize">Formato</label><select id="cSize"><option value="a4">A4 para imprimir</option><option value="post">Post cuadrado</option><option value="insta">Post de Instagram (4:5)</option><option value="story">Historia / estado</option></select></div>
+      </div>
+      <fieldset class="contact"><legend>¿Qué sale en el cartel para avisarte?</legend>
+       <label class="inline"><input type="radio" name="cMode" value="qr" checked> Solo el QR <span class="opt">(recomendado: tu teléfono no sale; quien lo escanea te manda un aviso)</span></label>
+       <label class="inline"><input type="radio" name="cMode" value="phone"> Mi teléfono en grande, además del QR <span class="opt">(te pedirá tu consentimiento)</span></label>
+      </fieldset>
+      <label class="inline" id="cStripsRow"><input type="checkbox" id="cStrips" checked> Tiras recortables abajo</label>
+      <div class="poster"><canvas id="cPrev" width="600" height="848"></canvas></div>
+      <div class="row"><button type="button" id="cPdf">Descargar PDF</button><button type="button" class="ghost" id="cPng">Descargar imagen</button><button type="button" class="ghost" id="cShare" hidden>📤 Compartir</button></div>
+     </section>
+
+     <section class="card">
+      <h2>Placa con QR</h2>
+      <p class="hint">Imprímelo y ponlo en su collar o chapa. Al escanearlo se abre su ficha con botones para llamarte o mandarte dónde está.</p>
+      <div class="qrbox"><img id="qrImg" alt="QR de la ficha"><div>
+       <a class="link" id="qrUrl" target="_blank" rel="noopener" translate="no"></a>
+       <div class="row"><a class="btn ghost small" id="qrPng" download>QR en PNG</a><a class="btn ghost small" id="qrSvg" download>QR en SVG</a><button type="button" class="ghost small" id="copyUrl">Copiar enlace</button></div>
+      </div></div>
+     </section>
+    </div>
+   </div>
+  </div>
+
+  <!-- Avisos de quien encuentra una mascota -->
+  <div data-pane="inbox" hidden>
+   <div class="narrow">
+    <h2>Avisos</h2>
+    <p class="hint">Cuando alguien escanea el QR de tu mascota y te manda un mensaje, aparece aquí (con su teléfono si lo deja y dónde estaba). Se borran solos a los 90 días.</p>
+    <div id="inboxList"></div>
+   </div>
+  </div>
+
+  <!-- Busca tu pipicán -->
+  <div data-pane="parks" hidden>
+   <div class="head"><h2>🌳 Busca tu pipicán</h2><a class="btn ghost" href="/pipicanes">Ver el mapa de pipicanes</a></div>
+   <section class="card allparks">
+    <h3>🗺️ Todos los pipicanes <span class="count" id="kAllN"></span></h3>
+    <p class="hint">Estos los ve todo el mundo, también sin cuenta, en el mapa público. Los tuyos que aún no ha revisado el administrador salen en gris, y solo los ves tú.</p>
+    <div class="map" id="kAllMap"></div>
+    <div class="row"><button type="button" class="ghost small" id="kAllMe">📍 Ver los que tengo cerca</button><button type="button" class="small" id="kNew">➕ Apuntar un pipicán nuevo</button></div>
+   </section>
+   <p class="hint">Apunta los pipicanes de tu zona para que otras personas los encuentren. Se ven en un mapa público, con su foto y un botón para llegar con Google Maps. No sale quién los ha apuntado.</p>
+   <p class="hint">Los pipicanes nuevos salen en el mapa para todos cuando el administrador comprueba que existen. Si después lo corriges, sigue en el mapa.</p>
+   <form id="kForm" class="card narrow">
+    <h3 id="kTitle">Apuntar un pipicán</h3>
+    <div class="photoedit"><div class="ph" id="kPhoto"><span>🌳</span></div>
+     <div><label class="btn ghost filebtn"><span>📷 Hacer o elegir una foto</span><input type="file" id="kPhotoIn" accept="image/*"></label>
+     <p class="hint">Si la foto lleva la ubicación del móvil, el sitio se marca solo en el mapa. Antes de subirla se le quitan esos datos. Que no salgan personas ni matrículas.</p></div></div>
+    <label for="kName">Nombre</label><input id="kName" maxlength="60" placeholder="Pipicán del parque de Benimaclet" required>
+    <label for="kNotes">Cómo es <span class="opt">(opcional)</span></label>
+    <textarea id="kNotes" rows="2" maxlength="300" placeholder="Vallado, con fuente y bancos. Zona para perros pequeños."></textarea>
+    <label for="kLink">¿Ya está en Google Maps? <span class="opt">(opcional)</span></label>
+    <div class="mapsearch"><input id="kLink" placeholder="Pega aquí el enlace de Google Maps" autocapitalize="off" inputmode="url"><button type="button" class="ghost small" id="kLinkGo">Usar enlace</button></div>
+    <details class="howto"><summary>❓ Cómo poner bien el sitio (paso a paso)</summary>
+     <ol data-i18n="kHowto">
+      <li>En Google Maps, busca el pipicán y <b>toca justo encima de él</b> hasta que salga su ficha o un punto rojo.</li>
+      <li>Pulsa <b>«Compartir»</b> y luego <b>«Copiar enlace»</b>. No copies la dirección de la barra del navegador ni uses otra app de mapas.</li>
+      <li>Pégalo aquí arriba y pulsa <b>«Usar enlace»</b>.</li>
+      <li><b>Mira el punto verde en el mapa.</b> Si sale en otro sitio, arrástralo con el dedo hasta el pipicán, o búscalo por su nombre o su calle.</li>
+      <li>Al guardar, el mapa se acerca y te pregunta <b>«¿Es aquí?»</b>: compruébalo y confirma.</li>
+     </ol>
+     <p class="hint">Consejo: «📍 Estoy aquí» solo es exacto si estás en el pipicán con el GPS del móvil. En un ordenador puede fallar muchos kilómetros.</p>
+    </details>
+    <label>Dónde está</label>
+    <div class="mapsearch"><input id="kSearch" placeholder="Busca el pipicán por su nombre, una calle o un pueblo" aria-label="Buscar en el mapa"><button type="button" class="ghost small" id="kFind">Buscar</button><button type="button" class="ghost small" id="kHere">📍 Estoy aquí</button></div>
+    <div class="map" id="kMap"></div>
+    <p class="hint" id="kWhere">Toca el mapa en el sitio exacto del pipicán.</p>
+    <div class="ksugg" id="kSugg" hidden></div>
+    <div class="err" id="kErr" role="alert"></div>
+    <div class="row"><button type="submit" id="kSave">Guardar pipicán</button><button type="button" class="ghost" id="kCancel" hidden>Cancelar</button><button type="button" class="danger" id="kDel" hidden>Borrar</button></div>
+   </form>
+   <h3>Los que has apuntado</h3>
+   <div class="cards" id="kList"></div>
+  </div>
+
+  <!-- Cuenta -->
+  <div data-pane="account" hidden>
+   <div class="narrow">
+    <h2>Mis datos</h2>
+    <p class="hint">Solo lo justo: sin apellidos, sin DNI y sin dirección exacta.</p>
+    <form id="meForm">
+     <div class="photoedit"><div class="ph round" id="mAvatar"><span>🐾</span></div>
+      <div><label class="btn ghost small filebtn"><span>📷 Poner mi foto o mi logo</span><input type="file" id="mAvatarIn" accept="image/png,image/jpeg,image/webp"></label>
+      <button type="button" class="ghost small" id="mAvatarDel" hidden>Quitar foto</button>
+      <p class="hint">Opcional. Sale arriba, junto a tu nombre. Si no pones nada, sale la huella.</p></div></div>
+     <label for="mName">Nombre</label><input id="mName" maxlength="40" required>
+     <label for="mUser">Usuario</label><input id="mUser" maxlength="32" autocapitalize="off" required>
+     <label for="mEmail">Correo electrónico</label><input id="mEmail" type="email" required>
+     <label for="mPhone">Teléfono <span class="opt">(opcional; no se enseña sin tu permiso)</span></label><input id="mPhone" type="tel" maxlength="30">
+     <label for="mZone">Zona o localidad <span class="opt">(opcional)</span></label><input id="mZone" maxlength="80">
+     <div class="err" id="mErr" role="alert"></div>
+     <button type="submit">Guardar mis datos</button>
+    </form>
+    <section id="orgSec" hidden>
+     <h2>Mi asociación <span class="tag" id="orgState"></span></h2>
+     <p class="hint">Esto sale en la página pública de tu asociación y en la ficha de tus animales en adopción. Elige qué datos de contacto quieres que se vean.</p>
+     <form id="orgForm">
+      <div class="photoedit"><div class="ph" id="oLogo"><span>🏡</span></div>
+       <div><label class="btn ghost small filebtn"><span>Subir el logo</span><input type="file" id="oLogoIn" accept="image/png,image/jpeg,image/webp"></label>
+       <button type="button" class="ghost small" id="oLogoDel" hidden>Quitar logo</button></div></div>
+      <label for="oName">Nombre de la asociación</label><input id="oName" maxlength="80" required>
+      <label for="oCity">Localidad</label><input id="oCity" maxlength="80" placeholder="Valencia">
+      <label for="oAbout">Quiénes sois <span class="opt">(opcional)</span></label><textarea id="oAbout" rows="3" maxlength="800" placeholder="Somos una protectora de voluntarios. Cómo adoptar, horarios de visita…"></textarea>
+      <label for="oWeb">Web o redes <span class="opt">(opcional)</span></label><input id="oWeb" maxlength="200" placeholder="https://…" autocapitalize="off">
+      <fieldset class="contact"><legend>Contacto público</legend>
+       <p class="hint">Si no marcas nada, la gente te escribe desde un formulario y te llega a «Avisos», sin ver vuestro teléfono ni correo.</p>
+       <label for="oPhone">Teléfono de la asociación</label><input id="oPhone" type="tel" maxlength="30">
+       <label class="inline"><input type="checkbox" id="oShowPhone"> Que se vea el teléfono y el botón de llamar</label>
+       <label class="inline"><input type="checkbox" id="oWa"> Botón de WhatsApp <span class="opt">(quien escribe verá el número en WhatsApp)</span></label>
+       <label for="oTg">Usuario de Telegram <span class="opt">(no enseña el teléfono)</span></label><input id="oTg" maxlength="40" placeholder="@protectora_valencia" autocapitalize="off">
+       <label for="oEmail">Correo de la asociación</label><input id="oEmail" type="email" maxlength="120">
+       <label class="inline"><input type="checkbox" id="oShowEmail"> Que se vea el correo</label>
+      </fieldset>
+      <div class="err" id="oErr" role="alert"></div>
+      <div class="row"><button type="submit">Guardar mi asociación</button><a class="btn ghost" id="oPublic" hidden>Ver su página</a></div>
+     </form>
+    </section>
+    <h2 id="looks">Apariencia</h2>
+    <div class="seg" role="group" aria-label="Modo" id="themeMode"><button type="button" data-mode="auto">Automático</button><button type="button" data-mode="light">☀️ Claro</button><button type="button" data-mode="dark">🌙 Oscuro</button></div>
+    <p class="hint">Color:</p>
+    <div class="swatches" id="themeColors" role="group" aria-label="Color"></div>
+    <label class="inline"><input type="checkbox" id="themePaws"> Fondo con patitas, huesos y más</label>
+    <h2>Idioma</h2>
+    <div class="seg lang" role="group" aria-label="Idioma"><button type="button" data-lang="es">Español</button><button type="button" data-lang="en">English</button></div>
+    <h2>Contraseña</h2>
+    <form id="pwForm">
+     <label for="pwOld" id="pwSec">Contraseña actual</label><input id="pwOld" type="password" autocomplete="current-password" required>
+     <label for="pwNew">Contraseña nueva</label><input id="pwNew" type="password" autocomplete="new-password" minlength="8" required>
+     <div class="err" id="pwErr" role="alert"></div>
+     <button type="submit">Cambiar contraseña</button>
+    </form>
+    <h2>Código de recuperación</h2>
+    <p class="hint">Sirve para recuperar la cuenta si olvidas el usuario o la contraseña. Si lo has perdido, genera otro: el anterior deja de valer.</p>
+    <button type="button" class="ghost" id="newCode">Generar otro código</button>
+    <h2>Mis datos y privacidad</h2>
+    <p class="hint">Puedes descargar todo lo que hay guardado de ti, o borrarlo todo para siempre (tu cuenta, tus mascotas y sus fotos).</p>
+    <div class="row"><a class="btn ghost" href="/api/export" download>Descargar mis datos</a><button type="button" class="danger" id="delAcc">Borrar mi cuenta y todo</button></div>
+    <h2>Acerca de</h2>
+    <p id="verLine"></p>
+    <div class="row"><button type="button" class="ghost" id="newsBtn">Ver novedades</button><button type="button" class="ghost" id="appNewsBtn" hidden>Novedades de la app</button><button type="button" class="ghost" id="appCheckBtn" hidden>Buscar versión nueva de la app</button><a class="btn ghost" href="/privacidad">Privacidad</a><a class="btn ghost" href="/aviso-legal">Aviso legal</a></div>
+    <p class="hint">MascotasPanel es gratis para uso personal y no comercial (licencia PolyForm Noncommercial). Hecho por IA Online Apps con ayuda de inteligencia artificial.</p>
+   </div>
+  </div>
+
+  <!-- Administración -->
+  <div data-pane="admin" hidden>
+   <div class="dhead"><div><h2 id="dHello">Hola</h2><p class="hint" id="dSub"></p></div>
+    <div class="seg dr" id="dRange" role="group" aria-label="Periodo"><button type="button" data-d="7">7 D</button><button type="button" data-d="30" class="on">1 M</button><button type="button" data-d="90">3 M</button><button type="button" data-d="365">1 A</button><button type="button" data-d="0">Todo</button></div></div>
+   <div class="kpis" id="dKpis"></div>
+   <section class="card review" id="dReview" hidden><div class="whead"><h3>🛎️ <span>Por revisar</span> <span class="nbadge" data-rn></span></h3></div>
+    <p class="hint">Lo que la gente ha mandado y espera a que lo apruebes. Toca el nombre para verlo antes.</p><div class="rlist" data-rl></div></section>
+
+   <div class="dgrid">
+    <div class="card dchart">
+     <div class="dch"><div><span class="hint" id="dChTitle">Fichas nuevas</span><b id="dChBig">0</b><span class="hint" id="dChSub"></span></div>
+      <div class="legend"><span><i style="background:var(--or)"></i> Mascotas</span><span><i style="background:#2563eb"></i> Personas</span></div></div>
+     <div class="chart" id="dChart"></div>
+    </div>
+    <div class="card"><h3>Últimas fichas</h3><div class="latest" id="dLatest"></div></div>
+    <div class="card"><h3>Mascotas por animal</h3><div class="hbars" id="dSpecies"></div></div>
+    <div class="card dfeed"><h3>Lo último que ha pasado</h3><ul class="feed" id="dFeed"></ul></div>
+   </div>
+   <section class="adopt card" id="dAdopt" hidden><div class="adhead"><h3>🏡 En adopción · <span>¿Me adoptas?</span></h3><a href="/adopta">Ver todos →</a></div><div class="adrow" id="dAdoptRow"></div></section>
+   <p class="adminnote">🛠️ <b>Administración.</b> Esta pestaña solo la ves tú porque eres administrador del servidor. Las personas que se registran tienen «Inicio» (con los animales que se buscan), «Mis mascotas», «Avisos», «Pipicanes» y «Mi cuenta».</p>
+   <h2>Ajustes del servidor</h2>
+   <form id="admForm" class="narrow">
+    <label class="inline"><input type="checkbox" id="sReg"> Cualquiera puede registrarse</label>
+    <label for="sPublic">Dirección pública del servidor</label>
+    <input id="sPublic" placeholder="https://mascotas.midominio.com" autocapitalize="off">
+    <p class="hint">Es la que llevan los QR y los carteles. Déjala vacía para usar la del navegador.</p>
+    <h3>Responsable de los datos (RGPD)</h3>
+    <p class="hint">Eres el responsable de los datos de quienes se registran. Pon tu nombre (o el de tu asociación) y un correo para que la gente pueda ejercer sus derechos. Sale en la política de privacidad y en el aviso legal.</p>
+    <p class="warn" id="legalWarn" hidden>⚠️ Falta poner el responsable de los datos.</p>
+    <label for="sLegalName">Nombre del responsable</label><input id="sLegalName" maxlength="120" placeholder="Tu nombre (o el de tu asociación)">
+    <label for="sLegalPlace">Localidad <span class="opt">(opcional)</span></label><input id="sLegalPlace" maxlength="120" placeholder="Valencia, España">
+    <label for="sLegalEmail">Correo para temas de privacidad</label><input id="sLegalEmail" type="email" maxlength="120">
+    <div class="row"><a class="btn ghost small" href="/privacidad">Ver la política de privacidad</a><a class="btn ghost small" href="/aviso-legal">Ver el aviso legal</a></div>
+    <h3>Avisos por Telegram <span class="opt">(opcional)</span></h3>
+    <p class="hint">Tu propio bot te avisa de todo, con fotos: personas y asociaciones nuevas, mascotas nuevas, mascotas perdidas y encontradas, avisos desde el QR y pipicanes para revisar. Desde el mismo mensaje puedes aprobar un pipicán o verificar una asociación, y cada noche a las 21:00 te manda el resumen del día.</p>
+    <ol class="hint steps"><li data-i18n="tg1">En Telegram, abre <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, escribe <b>/newbot</b> y ponle un nombre (por ejemplo «Mi MascotasPanel»).</li>
+     <li data-i18n="tg2">Te dará un token como <code>123456789:ABC…</code>. Cópialo, pégalo aquí abajo y pulsa <b>Guardar el token</b>.</li>
+     <li data-i18n="tg3">Pulsa <b>Conectar con mi Telegram</b> y luego <b>Iniciar</b> en el bot. Ya está.</li></ol>
+    <label for="sTgToken">Token del bot</label><div class="mapsearch"><input id="sTgToken" autocomplete="off" autocapitalize="off" placeholder="123456789:ABC…"><button type="button" class="ghost small" id="sTgSave">Guardar el token</button></div>
+    <div class="row"><a class="btn small" id="sTgLink" target="_blank" rel="noopener" hidden>📲 Conectar con mi Telegram</a><span class="hint" id="sTgState"></span></div>
+    <label class="inline"><input type="checkbox" id="sTgDaily" checked> Mandarme el resumen del día a las 21:00</label>
+    <details><summary>Poner el número de chat a mano</summary>
+     <label for="sTgChat">Tu número de chat</label><input id="sTgChat" autocapitalize="off" placeholder="123456789"></details>
+    <div class="row"><button type="button" class="ghost small" id="sTgTest">Mandar un mensaje de prueba</button><button type="button" class="ghost small" id="sTgOff" hidden>Quitar los avisos</button></div>
+    <div class="err" id="sErr" role="alert"></div>
+    <button type="submit">Guardar ajustes</button>
+   </form>
+   <h2>Registro completo</h2>
+   <p class="hint">Todas las mascotas con su dueño, teléfono, zona y chip, en una hoja de cálculo (se abre con Excel o LibreOffice).</p>
+   <a class="btn ghost" href="/api/admin/export.csv" download>Descargar el registro (Excel/CSV)</a>
+   <h2>Personas y asociaciones registradas</h2>
+   <p class="hint">Las asociaciones (🏡) no publican animales en adopción hasta que pulses «Verificar». Comprueba antes que es una asociación o protectora de verdad.</p>
+   <div class="tablewrap"><table class="tbl" id="usersTbl"></table></div>
+   <h2>Todas las fichas</h2>
+   <p class="hint">Si alguien sube algo que no es una mascota, puedes ocultarlo (deja de verse en público) o borrarlo.</p>
+   <div class="tablewrap"><table class="tbl" id="petsTbl"></table></div>
+   <h2>Pipicanes</h2>
+   <p class="hint">Los que apunta la gente. Si alguno está mal o no es un pipicán, ocúltalo o bórralo.</p>
+   <div class="card narrow importbox"><h3>Importar pipicanes de OpenStreetMap</h3>
+    <p class="hint">Trae los pipicanes que ya están apuntados en OpenStreetMap (el mapa libre) alrededor de un sitio. No se repiten si lo usas varias veces.</p>
+    <div class="mapsearch"><input id="iPlace" placeholder="Ciudad o barrio, por ejemplo Valencia"><select id="iKm"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="30">30 km</option></select><button type="button" class="small" id="iGo">Importar</button></div>
+    <p class="hint" id="iMsg"></p></div>
+   <div class="tablewrap"><table class="tbl" id="parksTbl"></table></div>
+  </div>
+ </main>
+ <footer class="pfoot" id="pFoot"></footer>
+</div>
+
+<dialog id="parkDlg" class="parkdlg"><h2 id="pdName"></h2><div id="pdBody"></div>
+ <div class="map" id="pdMap"></div>
+ <div class="row" id="pdLinks"></div>
+ <div class="row" id="pdActs"></div></dialog>
+<dialog id="news"><h2 id="newsTitle">Novedades</h2><div id="newsBody"></div><div class="row"><button type="button" id="newsClose">Cerrar</button></div></dialog>
+<dialog id="codeDlg"><h2>Guarda tu código de recuperación</h2>
+ <p>Si algún día olvidas tu usuario o tu contraseña, con este código podrás recuperar la cuenta.</p>
+ <p class="code" id="codeVal" translate="no"></p>
+ <p class="hint" id="codeUser"></p>
+ <p class="hint">Apúntalo en un papel o hazle una foto. No se vuelve a enseñar.</p>
+ <p class="hint">Guárdatelo donde quieras:</p>
+ <div class="row codebtns"><button type="button" class="ghost small" id="codeCopy">📋 Copiar</button><a class="btn ghost small" id="codeWa" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn ghost small" id="codeTg" target="_blank" rel="noopener">✈️ Telegram</a><a class="btn ghost small" id="codeMail">✉️ Correo</a><button type="button" class="ghost small" id="codeShare" hidden>📤 Compartir</button><button type="button" class="ghost small" id="codeTxt">⬇️ Descargar</button></div>
+ <div class="row"><button type="button" id="codeOk">Ya lo he guardado</button></div></dialog>
+<dialog id="unlostDlg" class="unlost"><h2>Quitar el aviso</h2>
+ <p class="hint">¿Qué ha pasado?</p>
+ <button type="button" class="found" id="ulFound">🏠 Ya lo he encontrado</button>
+ <button type="button" class="ghost" id="ulMistake">↩️ Me he equivocado (borrar el aviso sin dejar rastro)</button>
+ <button type="button" class="ghost small" id="ulCancel">Cancelar</button>
+</dialog>
+<dialog id="cropDlg"><h2>Encuadra a tu mascota</h2>
+ <canvas id="cropCv" width="320" height="320"></canvas>
+ <label class="zoomrow">🔍 <input type="range" id="cropZoom" min="1" max="5" step="0.01" value="1" aria-label="Zoom"></label>
+ <p class="hint" style="text-align:center">Arrastra para mover la foto y usa la barra (o pellizca con dos dedos) para acercar.</p>
+ <div class="row"><button type="button" class="ghost" id="cropNo">Cancelar</button><button type="button" id="cropOk">Usar la foto</button></div></dialog>
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span></div>
+
+<script src="/static/i18n.js"></script>
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<script src="/static/pdf.js"></script>
+<script src="/static/poster.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/ptr.js"></script>
+</body>
+</html>
