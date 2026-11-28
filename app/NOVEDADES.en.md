@@ -1,5 +1,11 @@
 # What's new in MascotasPanel
 
+## 1.0.17
+- **The what's new window always shows after an update.** Your account now remembers which version you have seen, so it shows
+  on your phone, in the app and on your computer, even the first time you sign in from that device.
+- **What's new from the top:** the window opens at the very top, with the newest version first. When you scroll down a
+  **«⬆ Back to top»** button appears, and «Close» is always visible.
+
 ## 1.0.16
 - **«📍 I've seen it here» on a lost pet's profile:** anyone, without an account, marks on the map where and when they saw it
   («right now», «half an hour ago»… or another time), with a note if they like. It shows on the profile, on a map and in a list

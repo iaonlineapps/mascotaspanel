@@ -194,6 +194,8 @@ def init():
     if "pending" not in kcols:  # 1 = apuntado por alguien y sin revisar todavía por el administrador
         run("ALTER TABLE parks ADD COLUMN pending INTEGER DEFAULT 0")
     ucols = {r["name"] for r in q("PRAGMA table_info(users)")}
+    if "seen_version" not in ucols:  # última versión cuyas novedades ha visto (para enseñarle la ventana al actualizar)
+        run("ALTER TABLE users ADD COLUMN seen_version TEXT DEFAULT ''")
     if "kind" not in ucols:  # «person» o «org» (asociación o protectora)
         run("ALTER TABLE users ADD COLUMN kind TEXT DEFAULT 'person'")
     if "age_ok" not in ucols:  # ha confirmado que tiene 14 años o más (LOPDGDD art. 7), con fecha
