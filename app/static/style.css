@@ -365,3 +365,9 @@ dialog.unlost button{width:100%;margin-top:8px}
 .pop button{margin-top:6px}
 .leaflet-popup .pop{display:grid;gap:6px;min-width:170px;max-width:240px}
 .leaflet-popup .pop small{display:block}
+/* Administración: atajos a la gestión */
+.admnav{position:sticky;top:0;z-index:5;display:flex;gap:8px;overflow-x:auto;padding:8px 0;margin:0 0 10px;background:var(--bg);scrollbar-width:none}
+.admnav::-webkit-scrollbar{display:none}
+.admnav a{flex:none;white-space:nowrap;text-decoration:none;font-weight:700;font-size:14px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.admnav a:active{transform:scale(.97)}
+[id^="adm"]{scroll-margin-top:64px}

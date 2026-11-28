@@ -1,5 +1,10 @@
 # What's new in MascotasPanel
 
+## 1.0.14
+- **Easier administration on the phone:** shortcuts at the top (👥 People, 🐾 All profiles, 🌳 Dog parks, ⚙️ Settings,
+  📲 Telegram) take you straight to each part, without scrolling through the whole summary.
+- The admin's Home now explains that it shows your own pets and messages; data for the whole site is in «Administration».
+
 ## 1.0.13
 - **Reload inside the Android app:** pull the page down (when you are at the very top) and it reloads. There is also a
   «🔄 Reload the page» button in your account menu, shown only inside the app. No need to install a new app: it works
