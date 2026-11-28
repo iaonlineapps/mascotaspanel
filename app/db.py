@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS messages(
   id INTEGER PRIMARY KEY, pet_id INTEGER NOT NULL, user_id INTEGER NOT NULL, created REAL,
   text TEXT DEFAULT '', contact TEXT DEFAULT '', lat REAL, lng REAL, read INTEGER DEFAULT 0);
 CREATE INDEX IF NOT EXISTS messages_user ON messages(user_id, created);
+-- «📍 Lo he visto aquí»: dónde y cuándo ha visto alguien a una mascota perdida (sin datos de quien lo apunta).
+-- Se ven en su ficha mientras está perdida y se borran cuando vuelve a casa.
+CREATE TABLE IF NOT EXISTS sightings(
+  id INTEGER PRIMARY KEY, pet_id INTEGER NOT NULL, created REAL, seen_at REAL, lat REAL NOT NULL, lng REAL NOT NULL,
+  note TEXT DEFAULT '');
+CREATE INDEX IF NOT EXISTS sightings_pet ON sightings(pet_id, seen_at);
 -- «Busca tu pipicán»: mapa de pipicanes que va apuntando la gente (sitios públicos, no casas)
 CREATE TABLE IF NOT EXISTS parks(
   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, name TEXT DEFAULT '', notes TEXT DEFAULT '',
@@ -156,6 +162,12 @@ def init():
     if "adopt" not in cols:  # animales en adopción de una asociación, con su mensaje («¿Me adoptas?»)
         run("ALTER TABLE pets ADD COLUMN adopt INTEGER DEFAULT 0")
         run("ALTER TABLE pets ADD COLUMN adopt_text TEXT DEFAULT ''")
+    if "tracker_lat" not in cols:  # última posición que dio el localizador de Google (Find Hub), la pone el dueño
+        run("ALTER TABLE pets ADD COLUMN tracker_lat REAL")
+        run("ALTER TABLE pets ADD COLUMN tracker_lng REAL")
+        run("ALTER TABLE pets ADD COLUMN tracker_at REAL")
+    if "tracker_kind" not in cols:  # qué localizador lleva: «google» (Find Hub), «apple» (AirTag) o nada
+        run("ALTER TABLE pets ADD COLUMN tracker_kind TEXT DEFAULT ''")
     if "transfer_to" not in cols:  # pasar la ficha a otra cuenta: esa cuenta tiene que aceptarlo
         run("ALTER TABLE pets ADD COLUMN transfer_to INTEGER DEFAULT 0")
     if "contact2_ok" not in cols:  # la segunda persona ha dado su permiso (fecha)

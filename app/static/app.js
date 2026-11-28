@@ -499,7 +499,7 @@ function paintMap() {
     lmap = L.map('lMap', {scrollWheelZoom: false});
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(lmap);
-    lmap.on('click', e => setPin(e.latlng.lat, e.latlng.lng));
+    lmap.on('click', e => { if (tOnMap) { tOnMap = false; setTrk(e.latlng.lat, e.latlng.lng); toast('Posición del localizador puesta'); } else setPin(e.latlng.lat, e.latlng.lng); });
   }
   if (lpin) { lpin.remove(); lpin = null; }
   lpos = null; $('lClear').hidden = true;
@@ -531,8 +531,72 @@ function paintLost() {
   $('lostState').textContent = P.lost
     ? t('Está marcada como perdida desde el') + ' ' + new Date(P.lost_at * 1000).toLocaleDateString(LANG === 'en' ? 'en-GB' : 'es-ES') + '. ' + t('Sale en la lista pública de mascotas perdidas.')
     : t('Si se pierde, márcala aquí: saldrá en la lista pública de mascotas perdidas y en su ficha se verá el aviso.');
-  paintMap(); paintShare(); paintSos();
+  paintMap(); paintTracker(); paintSeen(); paintShare(); paintSos();
 }
+// ---------- localizador (Google Find Hub o Apple AirTag) y avistamientos ----------
+// Google y Apple no dejan leer el localizador desde otra web: se abre su app y el dueño copia aquí la última posición.
+let tpos = null, tAt = null, tpin = null, tOnMap = false, seenLayer = null;
+const trkIcon = () => L.divIcon({className: 'tpin', html: '<span>📡</span>', iconSize: [30, 30], iconAnchor: [15, 15]});
+const localInput = t => { const d = new Date(t * 1000 - new Date().getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); };
+function setTrk(lat, lng, at) {
+  tpos = [Math.round(lat * 10000) / 10000, Math.round(lng * 10000) / 10000];
+  if (!$('tAt').value || at) $('tAt').value = localInput(at || Date.now() / 1000);
+  if (window.L && lmap) { if (tpin) tpin.setLatLng(tpos); else tpin = L.marker(tpos, {icon: trkIcon(), zIndexOffset: 500}).addTo(lmap); lmap.setView(tpos, 15); }
+  $('tClear').hidden = false;
+  $('tState').textContent = t('Posición puesta. Pulsa «Guardar cambios del aviso» para que salga en su ficha.');
+}
+function trkKind() { const r = document.querySelector('[name=tKind]:checked'); return r ? r.value : ''; }
+function paintTrkKind() {
+  const k = trkKind(); $('trkFields').hidden = !k;
+  if (k) { $('tOpen').textContent = '📡 ' + t(k === 'apple' ? 'Abrir mi AirTag (app Buscar)' : 'Abrir mi localizador de Google'); $('tHint').textContent = Tracker.hint(k, LANG); }
+}
+function paintTracker() {
+  const k = P.tracker_kind || '';
+  document.querySelectorAll('[name=tKind]').forEach(r => { r.checked = r.value === k; });
+  paintTrkKind();
+  if (tpin) { tpin.remove(); tpin = null; } tpos = null; $('tLink').value = ''; $('tAt').value = ''; $('tState').textContent = ''; $('tClear').hidden = true;
+  if (P.tracker_lat != null) { setTrk(P.tracker_lat, P.tracker_lng, P.tracker_at); $('tState').textContent = t('Sale en su ficha mientras esté perdida.'); if (lpos) lmap.fitBounds([lpos, tpos], {padding: [30, 30], maxZoom: 15}); }
+}
+document.querySelectorAll('[name=tKind]').forEach(r => { r.onchange = paintTrkKind; });
+$('tOpen').onclick = () => Tracker.open(trkKind());
+$('tOnMap').onclick = () => { tOnMap = true; $('lMap').scrollIntoView({behavior: 'smooth', block: 'center'}); toast('Toca en el mapa el sitio que te da el localizador'); };
+$('tClear').onclick = () => { if (tpin) { tpin.remove(); tpin = null; } tpos = null; $('tAt').value = ''; $('tClear').hidden = true; $('tState').textContent = t('Pulsa «Guardar cambios del aviso» para quitarla de su ficha.'); };
+$('tPaste').onclick = async () => {
+  const v = $('tLink').value.trim(); if (!v) return toast('Pega el enlace o las coordenadas');
+  const m = v.match(/(-?\d{1,2}\.\d{3,})\s*,\s*\+?(-?\d{1,3}\.\d{3,})/);
+  try {
+    let ll = m && !/^https?:/i.test(v) ? [Number(m[1]), Number(m[2])] : null;
+    if (!ll) { const r = await api('/api/maps-link', {method: 'POST', body: {url: v}}); ll = [r.lat, r.lng]; }
+    setTrk(ll[0], ll[1]);
+  } catch (err) { toast(err.message); }
+};
+$('tLink').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('tPaste').onclick(); } };
+const trkBody = () => {
+  const at = $('tAt').value ? new Date($('tAt').value).getTime() / 1000 : null;
+  return {tracker_kind: trkKind(), tracker_lat: tpos ? tpos[0] : null, tracker_lng: tpos ? tpos[1] : null, tracker_at: at};
+};
+const seenWhen = s => new Date(s * 1000).toLocaleString(LANG === 'en' ? 'en-GB' : 'es-ES', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+async function paintSeen() {
+  if (seenLayer) { seenLayer.remove(); seenLayer = null; }
+  $('seenOwn').hidden = true;
+  if (!P.lost) return;
+  const id = P.id; let list = [];
+  try { list = await api(`/api/pets/${id}/seen`); } catch (e) { return; }
+  if (!P || P.id !== id) return;
+  $('seenOwn').hidden = !list.length;
+  $('seenOwnList').innerHTML = list.map((s, i) => `<li><span><b>${list.length - i}.</b> ${esc(seenWhen(s.at))}${s.note ? ` · <q translate="no">${esc(s.note)}</q>` : ''}</span>`
+    + `<a class="ghost small" href="https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}" target="_blank" rel="noopener">🗺️</a>`
+    + `<button type="button" class="ghost small" data-unseen="${s.id}" aria-label="${esc(t('Borrar'))}">🗑️</button></li>`).join('');
+  if (window.L && lmap && list.length) {
+    seenLayer = L.layerGroup(list.map((s, i) => L.marker([s.lat, s.lng], {icon: L.divIcon({className: 'spin', html: `<span>${list.length - i}</span>`, iconSize: [28, 28], iconAnchor: [14, 14]})})
+      .bindPopup(`👀 ${esc(seenWhen(s.at))}${s.note ? '<br>' + esc(s.note) : ''}`))).addTo(lmap);
+  }
+}
+$('seenOwnList').onclick = async e => {
+  const b = e.target.closest('[data-unseen]'); if (!b) return;
+  if (!confirm(t('¿Borrar este avistamiento? Ya no saldrá en su ficha.'))) return;
+  try { await api(`/api/pets/${P.id}/seen/${b.dataset.unseen}`, {method: 'DELETE'}); paintSeen(); toast('Borrado'); } catch (err) { toast(err.message); }
+};
 // ---------- compartir el aviso (Facebook, WhatsApp, Instagram…) ----------
 function shareUrl() { return petUrl() + (LANG === 'en' ? '?lang=en' : ''); }
 function shareText() {
@@ -603,7 +667,7 @@ $('lostBtn').onclick = async () => {
   try {
     const was = P.lost;
     setPet(await api('/api/pets/' + P.id, {method: 'PUT', body: {lost: true, lost_zone: $('lZone').value, lost_note: $('lNote').value, reward: $('lReward').value,
-      lost_lat: lpos ? lpos[0] : null, lost_lng: lpos ? lpos[1] : null}}));
+      lost_lat: lpos ? lpos[0] : null, lost_lng: lpos ? lpos[1] : null, ...trkBody()}}));
     paintLost(); drawPreview(); toast(was ? 'Guardado' : 'Marcada como perdida. Descarga el cartel y compártelo.');
   } catch (err) { toast(err.message); }
 };

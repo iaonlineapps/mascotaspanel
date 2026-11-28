@@ -1,5 +1,16 @@
 # What's new in MascotasPanel
 
+## 1.0.16
+- **«📍 I've seen it here» on a lost pet's profile:** anyone, without an account, marks on the map where and when they saw it
+  («right now», «half an hour ago»… or another time), with a note if they like. It shows on the profile, on a map and in a list
+  with the time, and the family gets a notice with the place. Who adds it is not saved.
+- **Tracker (Google or Apple):** in «Is it lost?» you can say whether it wears a **Google (Find Hub)** tracker or an
+  **Apple AirTag**, open it with one button and add the **last position** it gave you (paste the link or tap the map).
+  It shows on its profile with 📡 and the time. Google and Apple don't let other websites read it, so you add it by hand.
+- **«📡 Open my tracker» button:** opens Google's Find Hub app on Android, or the Find My app on iPhone (on a computer,
+  its website), with the steps to turn on **lost mode** and share it with your family.
+- In your panel you see who has seen it, on the map and in a list, and you can delete the ones that are no use. When it comes home, they are deleted.
+
 ## 1.0.15
 - **New 🤝 Associations section** in the menu and on the public site (/asociaciones): every verified association and shelter
   with its logo, town, about text, public contact, legal details and how many animals it has up for adoption.
