@@ -53,10 +53,22 @@ main() {
     # 2. Código nuevo
     say "Bajando el código nuevo de GitHub"
     local UPDATED="" TMP f
-    if [ -d .git ] && as_owner "$(stat -c %U .)" git -c safe.directory="$CODE" pull --ff-only -q; then
-      UPDATED=1
-    elif [ -d .git ]; then
-      echo "git pull no ha podido (seguramente hay cambios hechos a mano). Copio el código nuevo encima."
+    if [ -d .git ]; then
+      # Se baja main y se deja igual que en GitHub (fetch + reset), así no falla aunque el historial de GitHub
+      # haya cambiado. No se tocan .env ni los datos (no están en git); tu docker-compose.yaml se guarda y se repone.
+      local OWNER G
+      OWNER=$(stat -c %U .)
+      G() { as_owner "$OWNER" git -c safe.directory="$CODE" "$@"; }
+      local KEEP; KEEP=$(mktemp)
+      cp -a docker-compose.yaml "$KEEP" 2>/dev/null || true
+      if G fetch -q "$REPO" main && G reset -q --hard FETCH_HEAD; then
+        UPDATED=1
+        G remote set-url origin "$REPO" 2>/dev/null || true
+      else
+        echo "No he podido bajarlo con git. Copio el código nuevo encima."
+      fi
+      if [ -s "$KEEP" ]; then root cp "$KEEP" docker-compose.yaml; fi
+      rm -f "$KEEP"
     fi
     if [ -z "$UPDATED" ]; then
       TMP=$(mktemp -d)
