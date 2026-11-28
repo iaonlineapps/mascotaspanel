@@ -242,6 +242,26 @@
        <input id="lNote" maxlength="300" placeholder="Lleva collar rojo. No le persigas, llámame.">
        <label for="lReward">Recompensa <span class="opt">(opcional)</span></label>
        <input id="lReward" maxlength="60" placeholder="Se gratificará">
+       <div class="trkbox" id="trkBox">
+        <h3>📡 ¿Lleva un localizador?</h3>
+        <div class="trkkind"><label class="inline"><input type="radio" name="tKind" value=""> No</label><label class="inline"><input type="radio" name="tKind" value="google"> Google (Find Hub)</label><label class="inline"><input type="radio" name="tKind" value="apple"> Apple (AirTag)</label></div>
+        <div id="trkFields" hidden>
+         <button type="button" class="ghost" id="tOpen">📡 Abrir mi localizador</button>
+         <p class="hint" id="tHint"></p>
+         <label for="tLink">Última posición que te ha dado <span class="opt">(opcional)</span></label>
+         <div class="mapsearch"><input id="tLink" placeholder="Pega el enlace de Google Maps o las coordenadas" aria-label="Enlace o coordenadas"><button type="button" class="ghost small" id="tPaste">Poner</button><button type="button" class="ghost small" id="tOnMap">🗺️ En el mapa</button></div>
+         <p class="hint">En el localizador, pulsa «Cómo llegar» o «Compartir» y copia el enlace. O pulsa «En el mapa» y toca el sitio en el mapa de arriba.</p>
+         <label for="tAt">¿A qué hora te la dio?</label>
+         <input type="datetime-local" id="tAt">
+         <p class="hint" id="tState"></p>
+         <button type="button" class="ghost small" id="tClear" hidden>Quitar la posición del localizador</button>
+        </div>
+       </div>
+       <div class="seenown" id="seenOwn" hidden>
+        <h3>👀 Lo han visto</h3>
+        <p class="hint">La gente lo marca en su ficha con «📍 Lo he visto aquí». Sale también en el mapa de arriba (en naranja). Si alguno no sirve, bórralo.</p>
+        <ul id="seenOwnList"></ul>
+       </div>
       </div>
       <div class="row"><button type="button" class="on" id="lostBtn">Marcar como perdida</button><button type="button" class="ok" id="foundBtn" hidden>¡Ya está en casa!</button></div>
      </section>
@@ -529,6 +549,7 @@
 <script src="/static/vendor/leaflet/leaflet.js"></script>
 <script src="/static/pdf.js"></script>
 <script src="/static/poster.js"></script>
+<script src="/static/tracker.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/ptr.js"></script>
 </body>

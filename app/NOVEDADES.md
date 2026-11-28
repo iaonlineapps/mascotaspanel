@@ -2,6 +2,17 @@
 
 <!-- La versión más nueva va arriba. El número está en app/VERSION y se ve en Mi cuenta → Acerca de. -->
 
+## 1.0.16
+- **«📍 Lo he visto aquí» en la ficha de una mascota perdida:** cualquiera, sin cuenta, marca en el mapa dónde la ha visto
+  y cuándo («ahora mismo», «hace media hora»… u otra hora), con una nota si quiere. Sale en la ficha, en un mapa y en una lista
+  con la hora, y a la familia le llega un aviso con el sitio. No se guarda quién lo apunta.
+- **Localizador (Google o Apple):** en «¿Se ha perdido?» puedes decir si lleva un localizador de **Google (Find Hub)** o un
+  **AirTag de Apple**, abrirlo con un botón y poner la **última posición** que te ha dado (pegando el enlace o tocando el mapa).
+  Sale en su ficha con 📡 y la hora. Google y Apple no dejan que otras webs lo lean solo, por eso se pone a mano.
+- **Botón «📡 Abrir mi localizador»:** abre la app Encontrar (Find Hub) de Google en Android, o la app Buscar en el iPhone
+  (en un ordenador, su web), con los pasos para activar el **modo perdido** y compartirlo con tu familia.
+- En tu panel ves quién lo ha visto, en el mapa y en una lista, y puedes borrar los que no sirvan. Cuando vuelve a casa, se borran solos.
+
 ## 1.0.15
 - **Nueva sección 🤝 Asociaciones** en el menú y en la web pública (/asociaciones): todas las asociaciones y protectoras
   verificadas con su logo, localidad, quiénes son, su contacto público, sus datos legales y cuántos animales tienen en adopción.

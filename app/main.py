@@ -185,7 +185,7 @@ def user_json(u):
 def pet_json(p, base=""):
     d = {k: p[k] for k in ("id", "code", "name", "species", "breed", "color", "sex", "age", "size", "chip",
                            "notes", "health", "contact", "contact2_name", "contact2_phone", "lost_at", "lost_zone", "lost_note", "reward", "lost_lat", "lost_lng",
-                           "created", "updated")}
+                           "tracker_lat", "tracker_lng", "tracker_at", "tracker_kind", "created", "updated")}
     d |= {"chip_ok": bool(p["chip_ok"]), "chip_search": bool(p["chip_search"]), "contact2_ok": bool(p["contact2_ok"]),
           "adopt": bool(p["adopt"]), "adopt_text": p["adopt_text"]}
     d |= {"lost": bool(p["lost"]), "hidden": bool(p["hidden"]), "public": bool(p["public"]),
@@ -602,6 +602,22 @@ def pet_fields(d) -> dict:
             f["lost_lat"], f["lost_lng"] = round(lat, 3), round(lng, 3)
         except (TypeError, ValueError):
             f["lost_lat"] = f["lost_lng"] = None
+    if "tracker_kind" in d:
+        f["tracker_kind"] = d["tracker_kind"] if d["tracker_kind"] in ("google", "apple") else ""
+    if "tracker_lat" in d or "tracker_lng" in d:
+        # última posición del localizador de Google: la pone el dueño a mano (Google no deja leerla desde otra app)
+        try:
+            lat, lng = float(d.get("tracker_lat")), float(d.get("tracker_lng"))
+            if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+                raise ValueError
+            f["tracker_lat"], f["tracker_lng"] = round(lat, 4), round(lng, 4)
+            try:
+                at = float(d.get("tracker_at"))
+            except (TypeError, ValueError):
+                at = time.time()
+            f["tracker_at"] = min(at, time.time())
+        except (TypeError, ValueError):
+            f["tracker_lat"] = f["tracker_lng"] = f["tracker_at"] = None
     return f
 
 
@@ -670,6 +686,8 @@ async def update_pet(pet_id: int, request: Request):
         f["lost_zone"] = f["lost_note"] = f["reward"] = ""
     if "lost" in f and not f["lost"]:
         f["lost_at"] = f["lost_lat"] = f["lost_lng"] = None
+        f["tracker_lat"] = f["tracker_lng"] = f["tracker_at"] = None
+        db.run("DELETE FROM sightings WHERE pet_id=?", pet_id)  # ya está en casa: los avistamientos dejan de servir
     f["updated"] = time.time()
     db.run(f"UPDATE pets SET {', '.join(k + '=?' for k in f)} WHERE id=?", *f.values(), pet_id)
     return pet_json(db.q1("SELECT * FROM pets WHERE id=?", pet_id), base_url(request))
@@ -1353,6 +1371,77 @@ async def found(code: str, request: Request):
     return {"ok": True}
 
 
+# --- «📍 Lo he visto aquí»: avistamientos de una mascota perdida -------------
+_seen_ip: dict = {}
+MAX_SIGHTINGS = 60
+
+
+def sighting_json(r):
+    return {"id": r["id"], "at": r["seen_at"], "lat": r["lat"], "lng": r["lng"], "note": r["note"] or ""}
+
+
+def sightings_of(pet_id):
+    return db.q("SELECT * FROM sightings WHERE pet_id=? ORDER BY seen_at DESC LIMIT ?", pet_id, MAX_SIGHTINGS)
+
+
+@app.post("/api/seen/{code}")
+async def seen(code: str, request: Request):
+    """Cualquiera (sin cuenta) marca en el mapa dónde y cuándo ha visto a una mascota perdida."""
+    p = db.q1("SELECT * FROM pets WHERE code=? AND hidden=0 AND lost=1", code) if CODE_RE.match(code) else None
+    if not p:
+        err(404, "Esta mascota ya no está marcada como perdida")
+    ip, now = _client(request), time.time()
+    recent = [t for t in _seen_ip.get(ip, []) if t > now - 3600]
+    if len(recent) >= 6:
+        err(429, "Has apuntado muchos avistamientos. Espera un rato.")
+    d = await request.json()
+    try:
+        lat, lng = float(d["lat"]), float(d["lng"])
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise ValueError
+    except (KeyError, TypeError, ValueError):
+        err(400, "Marca en el mapa dónde lo has visto")
+    try:
+        at = float(d.get("at") or now)
+    except (TypeError, ValueError):
+        at = now
+    at = min(at, now)
+    if at < (p["lost_at"] or now) - 86400:
+        err(400, "Esa hora es de antes de que se perdiera")
+    note = text(d.get("note"), 200)
+    _seen_ip[ip] = recent + [now]
+    cur = db.run("INSERT INTO sightings(pet_id,created,seen_at,lat,lng,note) VALUES(?,?,?,?,?,?)",
+                 p["id"], now, at, round(lat, 4), round(lng, 4), note)
+    db.run("DELETE FROM sightings WHERE pet_id=? AND id NOT IN (SELECT id FROM sightings WHERE pet_id=? ORDER BY seen_at DESC LIMIT ?)",
+           p["id"], p["id"], MAX_SIGHTINGS)
+    # le llega también a la familia como aviso, con el sitio, para que lo vea en «Avisos»
+    db.run("INSERT INTO messages(pet_id,user_id,created,text,contact,lat,lng) VALUES(?,?,?,?,?,?,?)",
+           p["id"], p["user_id"], now, "📍 " + ("Lo han visto aquí" + (f": {note}" if note else "")), "", round(lat, 5), round(lng, 5))
+    notify(f"📍 Alguien ha visto a {p['name']} (perdido) y lo ha marcado en el mapa" + (f"\n💬 {note}" if note else "")
+           + f"\n🗺️ https://www.google.com/maps/search/?api=1&query={round(lat, 5)},{round(lng, 5)}" + notify_url(f"/m/{p['code']}"))
+    return sighting_json(db.q1("SELECT * FROM sightings WHERE id=?", cur.lastrowid))
+
+
+@app.get("/api/seen/{code}")
+def seen_list(code: str):
+    p = db.q1("SELECT id FROM pets WHERE code=? AND hidden=0 AND lost=1", code) if CODE_RE.match(code) else None
+    return [sighting_json(r) for r in sightings_of(p["id"])] if p else []
+
+
+@app.get("/api/pets/{pet_id}/seen")
+def pet_seen(pet_id: int, request: Request):
+    p = own_pet(user_or_401(request), pet_id)
+    return [sighting_json(r) for r in sightings_of(p["id"])]
+
+
+@app.delete("/api/pets/{pet_id}/seen/{sid}")
+def pet_seen_delete(pet_id: int, sid: int, request: Request):
+    """El dueño quita un avistamiento que no le sirve (una broma, otro perro…)."""
+    p = own_pet(user_or_401(request), pet_id)
+    db.run("DELETE FROM sightings WHERE id=? AND pet_id=?", sid, p["id"])
+    return {"ok": True}
+
+
 @app.get("/api/messages")
 def messages(request: Request):
     u = user_or_401(request)
@@ -1782,7 +1871,10 @@ def pet_page(code: str, request: Request):
     if o and o["verified"]:
         return HTMLResponse(page.render_adopt_pet(row, org_json(o, public=True), lang, base_url(request)),
                             headers={"Cache-Control": "no-cache"})
-    return HTMLResponse(page.render_pet(row, lang, base_url(request)),
+    seen = sightings_of(row["id"]) if row["lost"] else []
+    u = db.session_user(request.cookies.get(COOKIE, ""))
+    mine = bool(u and u["id"] == row["user_id"])
+    return HTMLResponse(page.render_pet(row, lang, base_url(request), seen=seen, mine=mine),
                         headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
 
 

@@ -395,3 +395,16 @@ dialog.unlost button{width:100%;margin-top:8px}
 .orgrow dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:8px 0 0;font-size:14px}.orgrow dt{color:var(--grey)}.orgrow dd{margin:0;overflow-wrap:anywhere}
 .legalreg{margin:10px 0;border:1px solid var(--line);border-radius:12px;padding:8px 12px}.legalreg summary{cursor:pointer;font-weight:600}
 @media(max-width:520px){.orgrow dl{grid-template-columns:1fr;gap:0}.orgrow dd{margin-bottom:6px;font-weight:600}}
+/* 1.0.16: localizador (Google o Apple) y avistamientos «Lo he visto aquí» */
+.trkbox,.seenown{margin-top:14px;padding:12px;border-radius:14px;background:color-mix(in srgb,#2563eb 7%,transparent);border:1px solid color-mix(in srgb,#2563eb 25%,transparent)}
+.seenown{background:color-mix(in srgb,#ea580c 7%,transparent);border-color:color-mix(in srgb,#ea580c 28%,transparent)}
+.trkbox h3,.seenown h3{margin:0 0 6px;font-size:16px}
+.trkkind{display:flex;flex-wrap:wrap;gap:0 16px}
+#trkFields[hidden],.seenown[hidden]{display:none}
+#trkFields{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+#seenOwnList{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+#seenOwnList li{display:flex;gap:6px;align-items:center}
+#seenOwnList li span{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.tpin,.spin{background:none;border:0}
+.tpin span,.spin span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:800;font-size:13px;border:2px solid #fff;box-shadow:0 3px 8px #0006}
+.tpin span{background:#2563eb}.spin span{background:#ea580c}

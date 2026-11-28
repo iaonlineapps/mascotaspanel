@@ -17,6 +17,20 @@ SEX = {"macho": ("Macho", "Male"), "hembra": ("Hembra", "Female")}
 SIZE = {"pequeno": ("Pequeño", "Small"), "mediano": ("Mediano", "Medium"), "grande": ("Grande", "Large")}
 
 EN = {
+    "Por dónde lo han visto": "Where it has been seen", "Lo he visto aquí": "I've seen it here",
+    "Toca el mapa en el sitio donde lo has visto, o pulsa «Estoy aquí ahora».": "Tap the map where you saw it, or press «I'm here now».",
+    "Estoy aquí ahora": "I'm here now", "¿Cuándo lo has visto?": "When did you see it?", "Ahora mismo": "Right now",
+    "Hace 15 minutos": "15 minutes ago", "Hace media hora": "Half an hour ago", "Hace 1 hora": "1 hour ago", "Hace 2 horas": "2 hours ago",
+    "Hace 4 horas": "4 hours ago", "Otro día u hora…": "Another day or time…", "Día y hora": "Day and time", "¿Algo más?": "Anything else?",
+    "opcional": "optional", "Iba hacia el parque, asustado, con otro perro…": "Heading to the park, scared, with another dog…",
+    "Guardar dónde lo he visto": "Save where I saw it", "Cancelar": "Cancel",
+    "No se guarda quién eres: solo el sitio y la hora, que verá quien abra esta ficha. A su familia le llega un aviso.":
+        "Who you are is not saved: only the place and time, which anyone opening this page will see. Its family gets a notice.",
+    "Lleva un localizador": "It wears a tracker",
+    "Si lo tienes delante, acerca tu móvil a su collar: puede que te salga el mensaje de su familia.":
+        "If it's in front of you, hold your phone close to its collar: you may see a message from its family.",
+    "Solo lo ves tú (eres su familia)": "Only you see this (you're its family)", "Abrir mi localizador": "Open my tracker",
+    "Poner la última posición del localizador": "Add the tracker's last position",
     "Asociaciones": "Associations", "Verificada": "Verified", "Nombre oficial": "Official name", "Datos legales": "Legal details",
     "Registro de asociaciones": "Associations register no.", "Núcleo zoológico": "Animal facility (núcleo zoológico) no.",
     "en adopción": "up for adoption", "animal en adopción": "animal up for adoption",
@@ -429,7 +443,7 @@ def share_text(r, lang, org_name=""):
     return "\n".join(t)
 
 
-def render_pet(r, lang, base) -> str:
+def render_pet(r, lang, base, seen=(), mine=False) -> str:
     e = lambda k: esc(r[k])
     name = e("name") or "🐾"
     sp = SPECIES.get(r["species"], SPECIES["otro"])
@@ -485,13 +499,7 @@ def render_pet(r, lang, base) -> str:
         btns += f'<button class="b alt" type="button" id="showFound">✉️ {L(lang, "Prefiero mandar un mensaje")}</button>'
     else:
         btns = ""
-    mapblock = ""
-    if r["lost"] and r["lost_lat"] is not None:
-        ll = f'{r["lost_lat"]},{r["lost_lng"]}'
-        mapblock = (f'<section class="where"><h2>📍 {L(lang, "Se perdió por esta zona")}</h2>'
-                    f'<div class="map" id="petMap" data-lat="{r["lost_lat"]}" data-lng="{r["lost_lng"]}"></div>'
-                    f'<a class="b alt" href="https://www.google.com/maps/search/?api=1&amp;query={ll}" target="_blank" rel="noopener">🗺️ {L(lang, "Abrir en Google Maps")}</a></section>'
-                    f'<script src="/static/vendor/leaflet/leaflet.js?v={VERSION}"></script><script src="/static/maps.js?v={VERSION}"></script>')
+    mapblock = _seen_block(r, lang, seen, mine) if r["lost"] else ""
     lost = f'<div class="lost">{L(lang, "¡Me he perdido! Ayúdame a volver a casa")}</div>' if r["lost"] else ""
     reward = f'<div class="reward">🎁 {L(lang, "Recompensa")}: {e("reward")}</div>' if r["lost"] and r["reward"] else ""
     q = "?lang=en" if lang == "en" else ""
@@ -507,9 +515,52 @@ def render_pet(r, lang, base) -> str:
     return _head(f"{r['name']} · MascotasPanel", lang, "pet.css", leaflet=bool(mapblock), og=og) + f"""<body>
 <nav class="pettop"><a href="/{q}">🏠 {L(lang, 'Inicio')}</a><a class="btn" href="/panel">{L(lang, 'Entrar')}</a></nav><main>{lost}{photo}<h1>{L(lang, 'Hola, soy')} <span translate="no">{name}</span></h1><p class="sub">{sp[2]} {sp_name}{" · " + e("breed") if r["breed"] else ""}</p>
 <p class="lead">{L(lang, 'Si me has encontrado, por favor avisa a mi familia. ¡Gracias!')}</p>{reward}
-<div class="btns">{btns}</div>{form}{share}{mapblock}{f'<dl>{info}</dl>' if info else ""}{blocks}
+<div class="btns">{btns}</div>{mapblock}{form}{share}{f'<dl>{info}</dl>' if info else ""}{blocks}
 <p class="foot">{L(lang, 'Ficha hecha con')} <a href="/{q}" translate="no">MascotasPanel</a> · <a href="/privacidad{q}">{L(lang, 'Privacidad')}</a></p></main>
 <script src="/static/pet.js?v={VERSION}"></script><script src="/static/found.js?v={VERSION}"></script></body></html>"""
+
+
+TRACKERS = {"google": ("Google (Find Hub)", "Google (Find Hub)"), "apple": ("Apple (AirTag)", "Apple (AirTag)")}
+
+
+def _seen_block(r, lang, seen, mine):
+    """Ficha de una mascota perdida: el mapa con dónde se perdió, dónde la situó su localizador y dónde la ha visto
+    la gente («📍 Lo he visto aquí»), con la hora de cada cosa."""
+    kind = r["tracker_kind"] or ""
+    data = {"code": r["code"], "lang": lang, "kind": kind, "mine": mine,
+            "zone": [r["lost_lat"], r["lost_lng"]] if r["lost_lat"] is not None else None,
+            "tracker": {"lat": r["tracker_lat"], "lng": r["tracker_lng"], "at": r["tracker_at"]} if r["tracker_lat"] is not None else None,
+            "seen": [{"id": x["id"], "at": x["seen_at"], "lat": x["lat"], "lng": x["lng"], "note": x["note"] or ""} for x in seen],
+            "lost_at": r["lost_at"] or 0}
+    blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    tip = ""
+    if kind and not mine:
+        tip = (f'<p class="tip">🏷️ {L(lang, "Lleva un localizador")} {TRACKERS[kind][0]}. '
+               f'{L(lang, "Si lo tienes delante, acerca tu móvil a su collar: puede que te salga el mensaje de su familia.")}</p>')
+    owner = ""
+    if mine:
+        owner = (f'<div class="ownerbox"><h3>👤 {L(lang, "Solo lo ves tú (eres su familia)")}</h3>'
+                 f'<button class="b trkb" type="button" id="trkOpen" data-kind="{esc(kind)}">📡 {L(lang, "Abrir mi localizador")}</button>'
+                 f'<p class="small" id="trkHint"></p>'
+                 f'<a class="b alt" href="/panel#m{r["id"]}">✏️ {L(lang, "Poner la última posición del localizador")}</a></div>')
+    return (f'<section class="where seen" id="seenBox"><h2>📍 {L(lang, "Por dónde lo han visto")}</h2>'
+            f'<div class="map" id="seenMap" hidden></div><ul class="legend" id="seenLegend" hidden></ul>'
+            f'<ul class="seenlist" id="seenList"></ul>'
+            f'<button class="b seenb" type="button" id="seenBtn">📍 {L(lang, "Lo he visto aquí")}</button>'
+            f'<form class="seenform" id="seenForm" hidden><p class="hint" id="seenHint">{L(lang, "Toca el mapa en el sitio donde lo has visto, o pulsa «Estoy aquí ahora».")}</p>'
+            f'<button class="b alt" type="button" id="seenHere">🎯 {L(lang, "Estoy aquí ahora")}</button>'
+            f'<label for="seenWhen">{L(lang, "¿Cuándo lo has visto?")}</label><select id="seenWhen">'
+            + "".join(f'<option value="{v}">{L(lang, t)}</option>' for v, t in (("0", "Ahora mismo"), ("15", "Hace 15 minutos"), ("30", "Hace media hora"),
+                      ("60", "Hace 1 hora"), ("120", "Hace 2 horas"), ("240", "Hace 4 horas"), ("other", "Otro día u hora…")))
+            + f'</select><input type="datetime-local" id="seenAt" hidden aria-label="{L(lang, "Día y hora")}">'
+            f'<label for="seenNote">{L(lang, "¿Algo más?")} <span>({L(lang, "opcional")})</span></label>'
+            f'<input id="seenNote" maxlength="200" placeholder="{L(lang, "Iba hacia el parque, asustado, con otro perro…")}">'
+            f'<button class="b wa" type="submit">✅ {L(lang, "Guardar dónde lo he visto")}</button>'
+            f'<button class="b alt" type="button" id="seenCancel">{L(lang, "Cancelar")}</button><p class="fmsg" id="seenMsg" role="status"></p>'
+            f'<p class="small">🔒 {L(lang, "No se guarda quién eres: solo el sitio y la hora, que verá quien abra esta ficha. A su familia le llega un aviso.")}</p></form>'
+            f'{tip}{owner}</section>'
+            f'<script type="application/json" id="seenData">{blob}</script>'
+            f'<script src="/static/vendor/leaflet/leaflet.js?v={VERSION}"></script><script src="/static/tracker.js?v={VERSION}"></script><script src="/static/seen.js?v={VERSION}"></script>')
 
 
 def _org_buttons(o, lang, pet_name=""):

@@ -50,8 +50,23 @@ c, _ = a("GET", f"/qr/{p['code']}.png", ok=False); assert c == 200
 z = client()
 z("POST", f"/api/found/{p['code']}", {"text": "La tengo yo", "contact": "699000111"})
 _, msgs = a("GET", "/api/messages"); assert msgs and msgs[0]["text"] == "La tengo yo"
+# 1.0.16: «Lo he visto aquí» (sin cuenta) y la última posición del localizador (la pone el dueño)
+z("POST", f"/api/seen/{p['code']}", {"lat": 39.4812345, "lng": -0.3567891, "note": "Iba hacia el río"})
+c, _ = z("POST", f"/api/seen/{p['code']}", {"note": "sin sitio"}, ok=False); assert c == 400, "hace falta el sitio"
+_, seen = z("GET", f"/api/seen/{p['code']}"); assert seen[0]["note"] == "Iba hacia el río" and seen[0]["lat"] == 39.4812
+_, own = a("GET", f"/api/pets/{p['id']}/seen"); assert len(own) == 1
+_, msgs = a("GET", "/api/messages"); assert msgs[0]["text"].startswith("📍") and msgs[0]["lat"]
+_, p = a("PUT", f"/api/pets/{p['id']}", {"tracker_kind": "apple", "tracker_lat": 39.48, "tracker_lng": -0.35, "tracker_at": 1})
+assert p["tracker_kind"] == "apple" and p["tracker_lat"] == 39.48
+_, ficha = z("GET", "/m/" + p["code"]); assert 'id="seenBtn"' in ficha and "Iba hacia el río" in ficha and 'id="trkOpen"' not in ficha
+_, ficha = a("GET", "/m/" + p["code"]); assert 'id="trkOpen"' in ficha, "el dueño ve el botón de su localizador"
+a("DELETE", f"/api/pets/{p['id']}/seen/{own[0]['id']}")
+_, own = a("GET", f"/api/pets/{p['id']}/seen"); assert not own
+z("POST", f"/api/seen/{p['code']}", {"lat": 39.48, "lng": -0.35})
 a("PUT", f"/api/pets/{p['id']}", {"lost": False})
-_, ficha = a("GET", "/m/" + p["code"]); assert "tel:" not in ficha and "Marta" not in ficha
+_, ficha = a("GET", "/m/" + p["code"]); assert "tel:" not in ficha and "Marta" not in ficha and 'id="seenBtn"' not in ficha
+_, own = a("GET", f"/api/pets/{p['id']}/seen"); assert not own, "al volver a casa se borran los avistamientos"
+c, _ = z("POST", f"/api/seen/{p['code']}", {"lat": 39.48, "lng": -0.35}, ok=False); assert c == 404
 _, home = a("GET", "/?ver=perdidas"); assert "Toby" not in home
 anon = client()
 _, home = anon("GET", "/"); assert "Toby" not in home and "mascotas registradas" in home, "en el registro los demás solo ven el total"
