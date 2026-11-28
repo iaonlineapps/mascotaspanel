@@ -48,7 +48,7 @@ async def security(request: Request, call_next):
             return JSONResponse({"detail": "Petición no permitida"}, status_code=403)
     r = await call_next(request)
     p = request.url.path
-    if (request.method == "GET" and (p in ("/", "/pipicanes", "/adopta", "/privacidad", "/aviso-legal") or p.startswith(("/asociacion/", "/m/")))
+    if (request.method == "GET" and (p in ("/", "/pipicanes", "/adopta", "/asociaciones", "/privacidad", "/aviso-legal") or p.startswith(("/asociacion/", "/m/")))
             and request.cookies.get(COOKIE) and db.session_user(request.cookies.get(COOKIE, ""))):
         # Con la sesión abierta, las páginas públicas no dicen «Entrar» (parecía que se había cerrado la sesión)
         body = b"".join([c async for c in r.body_iterator]).decode()
@@ -145,7 +145,8 @@ def org_json(o, public=False):
     if not o:
         return None
     d = {"id": o["user_id"], "name": o["name"], "city": o["city"], "about": o["about"], "web": o["web"],
-         "logo": f"/f/{o['logo']}" if o["logo"] else "", "verified": bool(o["verified"]), "telegram": o["telegram"]}
+         "logo": f"/f/{o['logo']}" if o["logo"] else "", "verified": bool(o["verified"]), "telegram": o["telegram"],
+         "legal_name": o["legal_name"] or "", "cif": o["cif"] or "", "reg_number": o["reg_number"] or "", "zoo_number": o["zoo_number"] or ""}
     if public:
         d |= {"phone": o["phone"] if o["show_phone"] else "", "whatsapp": _wa_num(o["phone"]) if o["whatsapp"] and o["phone"] else "",
               "email": o["email"] if o["show_email"] else ""}
@@ -153,6 +154,14 @@ def org_json(o, public=False):
         d |= {"phone": o["phone"], "show_phone": bool(o["show_phone"]), "whatsapp": bool(o["whatsapp"]),
               "email": o["email"], "show_email": bool(o["show_email"])}
     return d
+
+
+def clean_cif(v):
+    """CIF o NIF de la asociación: letra + 7 cifras + control (las asociaciones suelen empezar por G). Vacío vale."""
+    c = re.sub(r"[\s.-]", "", str(v or "")).upper()[:12]
+    if c and not re.fullmatch(r"[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]", c):
+        err(400, "El CIF es una letra y 8 caracteres, como G12345678")
+    return c
 
 
 def _wa_num(p):
@@ -382,6 +391,7 @@ async def register(request: Request):
     org_name = text(d.get("org_name"), 80)
     if kind == "org" and len(org_name) < 3:
         err(400, "Escribe el nombre de la asociación o protectora")
+    org_cif = clean_cif(d.get("org_cif")) if kind == "org" else ""
     if db.q1("SELECT 1 FROM users WHERE username=?", username):
         note_fail(request)
         err(409, "Ese usuario ya existe. Elige otro")
@@ -393,9 +403,14 @@ async def register(request: Request):
                  "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", username, email, name, phone, text(d.get("zone"), 80), db.hash_pw(pw),
                  db.hash_recovery(code), int(first), "approved", now, now, kind, now, CONSENT_V)
     if kind == "org":
-        db.run("INSERT INTO orgs(user_id,name,city,email,verified,created) VALUES(?,?,?,?,?,?)",
-               cur.lastrowid, org_name, text(d.get("zone"), 80), email, int(first), now)
+        legal = {"legal_name": text(d.get("org_legal"), 120), "cif": org_cif, "reg_number": text(d.get("org_reg"), 60),
+                 "zoo_number": text(d.get("org_zoo"), 60)}
+        db.run("INSERT INTO orgs(user_id,name,city,email,verified,created,legal_name,cif,reg_number,zoo_number) VALUES(?,?,?,?,?,?,?,?,?,?)",
+               cur.lastrowid, org_name, text(d.get("zone"), 80), email, int(first), now, *legal.values())
         notify(f"🏡 Nueva asociación registrada: {org_name}\n👤 {name} (@{username}) · ✉️ {email}"
+               + (f"\n🏛️ {legal['legal_name']}" if legal["legal_name"] else "") + (f" · CIF {org_cif}" if org_cif else "")
+               + (f"\n📋 Registro: {legal['reg_number']}" if legal["reg_number"] else "")
+               + (f"\n🏠 Núcleo zoológico: {legal['zoo_number']}" if legal["zoo_number"] else "")
                + (f"\n📍 {text(d.get('zone'), 80)}" if d.get("zone") else "")
                + "\nCompruébala y verifícala para que pueda publicar animales en adopción." + notify_url("/panel"),
                buttons=[[("✅ Verificar asociación", f"org_ok:{cur.lastrowid}")]])
@@ -1168,9 +1183,11 @@ async def org_update(request: Request):
         err(403, "Solo para asociaciones")
     d = await request.json()
     f = {}
-    for k, n in (("name", 80), ("city", 80), ("about", 800), ("telegram", 40)):
+    for k, n in (("name", 80), ("city", 80), ("about", 800), ("telegram", 40), ("legal_name", 120), ("reg_number", 60), ("zoo_number", 60)):
         if k in d:
             f[k] = text(d[k], n)
+    if "cif" in d:
+        f["cif"] = clean_cif(d["cif"])
     if "name" in f and len(f["name"]) < 3:
         err(400, "Escribe el nombre de la asociación o protectora")
     if "telegram" in f and f["telegram"]:
@@ -1232,6 +1249,31 @@ async def org_logo(request: Request):
 
 ADOPT_SQL = ("FROM pets p JOIN users u ON u.id=p.user_id JOIN orgs o ON o.user_id=p.user_id "
              "WHERE p.adopt=1 AND p.hidden=0 AND u.status='approved' AND o.verified=1")
+
+
+ORGS_SQL = ("SELECT o.*, (SELECT COUNT(*) FROM pets p WHERE p.user_id=o.user_id AND p.adopt=1 AND p.hidden=0) n_adopt "
+            "FROM orgs o JOIN users u ON u.id=o.user_id WHERE o.verified=1 AND u.status='approved' ORDER BY o.name COLLATE NOCASE")
+
+
+def public_orgs():
+    """Asociaciones verificadas, con sus datos públicos y legales y cuántos animales tienen en adopción."""
+    return [org_json(o, public=True) | {"n_adopt": o["n_adopt"]} for o in db.q(ORGS_SQL)]
+
+
+@app.get("/api/orgs")
+def orgs_list():
+    return public_orgs()
+
+
+@app.get("/api/admin/orgs")
+def admin_orgs(request: Request):
+    """Todas las asociaciones (también las que esperan verificación), con la persona que lleva la cuenta."""
+    admin_or_403(request)
+    return [org_json(o) | {"user": {"name": o["uname"], "username": o["username"], "email": o["uemail"], "status": o["status"]},
+                           "created": o["created"], "n_adopt": o["n_adopt"]}
+            for o in db.q("SELECT o.*, u.name uname, u.username, u.email uemail, u.status, "
+                          "(SELECT COUNT(*) FROM pets p WHERE p.user_id=o.user_id AND p.adopt=1) n_adopt "
+                          "FROM orgs o JOIN users u ON u.id=o.user_id ORDER BY o.verified, o.created DESC")]
 
 
 def adopt_rows(limit=200, especie="", org_id=0):
@@ -1712,6 +1754,11 @@ def adopt_page(request: Request, especie: str = ""):
     rows = adopt_rows(200, especie)
     orgs = db.q("SELECT o.* FROM orgs o JOIN users u ON u.id=o.user_id WHERE o.verified=1 AND u.status='approved' ORDER BY o.name")
     return HTMLResponse(page.render_adopt(rows, orgs, req_lang(request), especie), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/asociaciones", response_class=HTMLResponse)
+def orgs_page(request: Request):
+    return HTMLResponse(page.render_orgs(public_orgs(), req_lang(request)), headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/asociacion/{org_id}", response_class=HTMLResponse)

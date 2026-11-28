@@ -2,6 +2,15 @@
 
 <!-- La versión más nueva va arriba. El número está en app/VERSION y se ve en Mi cuenta → Acerca de. -->
 
+## 1.0.15
+- **Nueva sección 🤝 Asociaciones** en el menú y en la web pública (/asociaciones): todas las asociaciones y protectoras
+  verificadas con su logo, localidad, quiénes son, su contacto público, sus datos legales y cuántos animales tienen en adopción.
+- **Datos legales de las asociaciones:** nombre oficial, CIF, nº de registro de asociaciones y nº de núcleo zoológico. Se pueden
+  poner al registrarse y en «Mi cuenta → Mi asociación», y salen en su página pública.
+- **Para el administrador:** en «Asociaciones» está la gestión para verificarlas o quitarles la verificación, viendo antes sus
+  datos legales y quién lleva la cuenta. Las que esperan salen primero y con un número en la pestaña.
+- **Menú de la app arreglado:** las pestañas ya no se cortan. Se deslizan de lado y una flecha naranja avisa de que hay más.
+
 ## 1.0.14
 - **Administración más fácil en el móvil:** arriba salen unos atajos (👥 Personas, 🐾 Todas las fichas, 🌳 Pipicanes,
   ⚙️ Ajustes, 📲 Telegram) que te llevan directo a cada parte, sin tener que bajar por todo el resumen.

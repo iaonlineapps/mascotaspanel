@@ -121,17 +121,27 @@ _, html = anon("GET", "/aviso-legal"); assert "Responsable Prueba" in html
 c, _ = b("POST", "/api/pets", {"name": "Kira", "species": "perro", "adopt": True}, ok=False); assert c == 400, "una persona no pone animales en adopción"
 o = client()
 o("POST", "/api/register", {"username": "protectora", "email": "prote@example.com", "name": "Lucía", "password": "contrasena3",
-                            "accept": True, "age_ok": True, "kind": "org", "org_name": "Huellas Valencia", "zone": "Valencia"})
+                            "accept": True, "age_ok": True, "kind": "org", "org_name": "Huellas Valencia", "zone": "Valencia",
+                            "org_legal": "Asociación Protectora Huellas", "org_cif": "g-12345678"})
 o("POST", "/api/login", {"login": "protectora", "password": "contrasena3"})
 _, m = o("GET", "/api/me"); assert m["user"]["kind"] == "org" and not m["user"]["org"]["verified"]
 o("PUT", "/api/org", {"phone": "600999888", "show_phone": False, "whatsapp": True, "telegram": "@huellas_vlc"})
 _, kp = o("POST", "/api/pets", {"name": "Kira", "species": "perro", "adopt": True, "adopt_text": "¿Me adoptas?"})
 _, ad = anon("GET", "/api/adopt"); assert ad == [], "sin verificar no se publica"
+assert m["user"]["org"]["cif"] == "G12345678" and m["user"]["org"]["legal_name"] == "Asociación Protectora Huellas"
+c, _ = o("PUT", "/api/org", {"cif": "12345"}, ok=False); assert c == 400, "CIF mal escrito"
+o("PUT", "/api/org", {"reg_number": "CV-01-012345-V", "zoo_number": "NZ-46-001"})
+_, ol = anon("GET", "/api/orgs"); assert ol == [], "sin verificar no sale en Asociaciones"
+_, ao = a("GET", "/api/admin/orgs"); assert ao[0]["reg_number"] == "CV-01-012345-V" and not ao[0]["verified"]
+c, _ = b("GET", "/api/admin/orgs", ok=False); assert c == 403
 a("POST", f"/api/admin/users/{m['user']['id']}", {"action": "verify"})
 _, ad = anon("GET", "/api/adopt"); assert ad and ad[0]["name"] == "Kira" and ad[0]["org"] == "Huellas Valencia"
 _, html = anon("GET", "/m/" + kp["code"]); assert "Huellas Valencia" in html and "t.me/huellas_vlc" in html and "wa.me/34600999888" in html and "tel:" not in html
 _, html = anon("GET", "/adopta"); assert "Kira" in html
-_, html = anon("GET", f"/asociacion/{m['user']['id']}"); assert "Kira" in html
+_, html = anon("GET", f"/asociacion/{m['user']['id']}"); assert "Kira" in html and "G12345678" in html and "NZ-46-001" in html
+_, ol = anon("GET", "/api/orgs"); assert ol[0]["name"] == "Huellas Valencia" and ol[0]["n_adopt"] == 1 and ol[0]["cif"] == "G12345678"
+assert ol[0]["phone"] == "", "el teléfono oculto no sale"
+_, html = anon("GET", "/asociaciones"); assert "Huellas Valencia" in html and "CIF G12345678" in html
 _, html = anon("GET", "/"); assert "Kira" in html and "Me adoptas" in html
 anon("POST", f"/api/found/{kp['code']}", {"text": "Me gustaría conocer a Kira", "contact": "x@example.com"})
 _, msgs = o("GET", "/api/messages"); assert msgs[0]["text"].startswith("Me gustaría")
