@@ -2,6 +2,11 @@
 
 <!-- La versión más nueva va arriba. El número está en app/VERSION y se ve en Mi cuenta → Acerca de. -->
 
+## 1.0.14
+- **Administración más fácil en el móvil:** arriba salen unos atajos (👥 Personas, 🐾 Todas las fichas, 🌳 Pipicanes,
+  ⚙️ Ajustes, 📲 Telegram) que te llevan directo a cada parte, sin tener que bajar por todo el resumen.
+- En el Inicio del administrador se explica que ahí salen tus propias mascotas y avisos; lo de toda la web está en «Administración».
+
 ## 1.0.13
 - **Recargar dentro de la app de Android:** tira de la página hacia abajo (estando arriba del todo) y se recarga. También
   hay un botón «🔄 Recargar la página» en el menú de tu cuenta, que solo sale dentro de la app. No hace falta instalar

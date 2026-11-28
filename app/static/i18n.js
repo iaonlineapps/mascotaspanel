@@ -109,6 +109,8 @@ const EN = {
   "¿Estás en un pipicán que no sale en el mapa?": "Are you at a dog park that isn't on the map?",
   "Añadir pipicán aquí": "Add a dog park here",
   "Posible duplicado de": "Possible duplicate of",
+  "👥 Personas": "👥 People", "🐾 Todas las fichas": "🐾 All profiles", "🌳 Pipicanes": "🌳 Dog parks", "⚙️ Ajustes": "⚙️ Settings", "📲 Telegram": "📲 Telegram",
+  "Tu Inicio con tu cuenta: tus mascotas y tus avisos. Los datos de toda la web están en «Administración».": "Your Home with your account: your pets and your messages. Data for the whole site is in «Administration».",
   "Mantengo el sitio del enlace de Google Maps": "I'm keeping the place from the Google Maps link",
   "Ya está apuntado en la web": "Already on the website",
   "En OpenStreetMap hay un pipicán cerca": "There's a dog park nearby on OpenStreetMap",

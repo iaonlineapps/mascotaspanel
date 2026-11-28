@@ -410,6 +410,9 @@
   <div data-pane="admin" hidden>
    <div class="dhead"><div><h2 id="dHello">Hola</h2><p class="hint" id="dSub"></p></div>
     <div class="seg dr" id="dRange" role="group" aria-label="Periodo"><button type="button" data-d="7">7 D</button><button type="button" data-d="30" class="on">1 M</button><button type="button" data-d="90">3 M</button><button type="button" data-d="365">1 A</button><button type="button" data-d="0">Todo</button></div></div>
+   <nav class="admnav" aria-label="Ir a">
+    <a href="#admUsers" data-jump="admUsers">👥 Personas</a><a href="#admPets" data-jump="admPets">🐾 Todas las fichas</a><a href="#admParks" data-jump="admParks">🌳 Pipicanes</a><a href="#admSet" data-jump="admSet">⚙️ Ajustes</a><a href="#admTg" data-jump="admTg">📲 Telegram</a>
+   </nav>
    <div class="kpis" id="dKpis"></div>
    <section class="card review" id="dReview" hidden><div class="whead"><h3>🛎️ <span>Por revisar</span> <span class="nbadge" data-rn></span></h3></div>
     <p class="hint">Lo que la gente ha mandado y espera a que lo apruebes. Toca el nombre para verlo antes.</p><div class="rlist" data-rl></div></section>
@@ -426,7 +429,7 @@
    </div>
    <section class="adopt card" id="dAdopt" hidden><div class="adhead"><h3>🏡 En adopción · <span>¿Me adoptas?</span></h3><a href="/adopta">Ver todos →</a></div><div class="adrow" id="dAdoptRow"></div></section>
    <p class="adminnote">🛠️ <b>Administración.</b> Esta pestaña solo la ves tú porque eres administrador del servidor. Las personas que se registran tienen «Inicio» (con los animales que se buscan), «Mis mascotas», «Avisos», «Pipicanes» y «Mi cuenta».</p>
-   <h2>Ajustes del servidor</h2>
+   <h2 id="admSet">Ajustes del servidor</h2>
    <form id="admForm" class="narrow">
     <label class="inline"><input type="checkbox" id="sReg"> Cualquiera puede registrarse</label>
     <label for="sPublic">Dirección pública del servidor</label>
@@ -439,7 +442,7 @@
     <label for="sLegalPlace">Localidad <span class="opt">(opcional)</span></label><input id="sLegalPlace" maxlength="120" placeholder="Valencia, España">
     <label for="sLegalEmail">Correo para temas de privacidad</label><input id="sLegalEmail" type="email" maxlength="120">
     <div class="row"><a class="btn ghost small" href="/privacidad">Ver la política de privacidad</a><a class="btn ghost small" href="/aviso-legal">Ver el aviso legal</a></div>
-    <h3>Avisos por Telegram <span class="opt">(opcional)</span></h3>
+    <h3 id="admTg">Avisos por Telegram <span class="opt">(opcional)</span></h3>
     <p class="hint">Tu propio bot te avisa de todo, con fotos: personas y asociaciones nuevas, mascotas nuevas, mascotas perdidas y encontradas, avisos desde el QR y pipicanes para revisar. Desde el mismo mensaje puedes aprobar un pipicán o verificar una asociación, y cada noche a las 21:00 te manda el resumen del día.</p>
     <ol class="hint steps"><li data-i18n="tg1">En Telegram, abre <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, escribe <b>/newbot</b> y ponle un nombre (por ejemplo «Mi MascotasPanel»).</li>
      <li data-i18n="tg2">Te dará un token como <code>123456789:ABC…</code>. Cópialo, pégalo aquí abajo y pulsa <b>Guardar el token</b>.</li>
@@ -456,13 +459,13 @@
    <h2>Registro completo</h2>
    <p class="hint">Todas las mascotas con su dueño, teléfono, zona y chip, en una hoja de cálculo (se abre con Excel o LibreOffice).</p>
    <a class="btn ghost" href="/api/admin/export.csv" download>Descargar el registro (Excel/CSV)</a>
-   <h2>Personas y asociaciones registradas</h2>
+   <h2 id="admUsers">Personas y asociaciones registradas</h2>
    <p class="hint">Las asociaciones (🏡) no publican animales en adopción hasta que pulses «Verificar». Comprueba antes que es una asociación o protectora de verdad.</p>
    <div class="tablewrap"><table class="tbl" id="usersTbl"></table></div>
-   <h2>Todas las fichas</h2>
+   <h2 id="admPets">Todas las fichas</h2>
    <p class="hint">Si alguien sube algo que no es una mascota, puedes ocultarlo (deja de verse en público) o borrarlo.</p>
    <div class="tablewrap"><table class="tbl" id="petsTbl"></table></div>
-   <h2>Pipicanes</h2>
+   <h2 id="admParks">Pipicanes</h2>
    <p class="hint">Los que apunta la gente. Si alguno está mal o no es un pipicán, ocúltalo o bórralo.</p>
    <div class="card narrow importbox"><h3>Importar pipicanes de OpenStreetMap</h3>
     <p class="hint">Trae los pipicanes que ya están apuntados en OpenStreetMap (el mapa libre) alrededor de un sitio. No se repiten si lo usas varias veces.</p>

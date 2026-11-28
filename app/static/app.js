@@ -950,7 +950,8 @@ document.querySelectorAll('.review').forEach(box => box.onclick = async e => {
 let wanted = [], hSp = '';
 async function loadHome() {
   $('hHello').textContent = `${t('Hola')}, ${me.name}`;
-  $('hSub').textContent = t('Esto es lo que pasa ahora en MascotasPanel.');
+  $('hSub').textContent = t(me.is_admin ? 'Tu Inicio con tu cuenta: tus mascotas y tus avisos. Los datos de toda la web están en «Administración».'
+    : 'Esto es lo que pasa ahora en MascotasPanel.');
   try { wanted = await api('/api/lost'); } catch (e) { wanted = []; }
   const mine = pets.filter(p => p.lost).length, unread = Number($('nBadge').hidden ? 0 : $('nBadge').textContent) || 0;
   const kpi = (k, color, label, big, line, go) => `<button type="button" class="kpi" data-go="${go}"><div><span class="kl">${esc(t(label))}</span><b>${big}</b><span class="ks">${line}</span></div><span class="ki" style="background:${color}">${svgIcon(k)}</span></button>`;
@@ -1373,6 +1374,11 @@ $('kForm').onsubmit = async e => {
   $('kSave').disabled = false;
 };
 
+// Administración: atajos a la gestión (personas, fichas, pipicanes, ajustes), que está debajo del resumen
+document.querySelector('.admnav').onclick = e => {
+  const a = e.target.closest('[data-jump]'); if (!a) return;
+  e.preventDefault(); const el = $(a.dataset.jump); if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+};
 // ---------- apariencia: claro / oscuro, color y fondo con patitas (se guarda en este dispositivo) ----------
 const COLOR_NAMES = {naranja: 'Naranja', azul: 'Azul', verde: 'Verde', morado: 'Morado', rosa: 'Rosa', turquesa: 'Turquesa', rojo: 'Rojo', marron: 'Marrón'};
 $('themeColors').innerHTML = Object.entries(Tema.COLORS).map(([k, c]) =>
