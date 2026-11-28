@@ -408,3 +408,7 @@ dialog.unlost button{width:100%;margin-top:8px}
 .tpin,.spin{background:none;border:0}
 .tpin span,.spin span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:800;font-size:13px;border:2px solid #fff;box-shadow:0 3px 8px #0006}
 .tpin span{background:#2563eb}.spin span{background:#ea580c}
+/* 1.0.17: novedades siempre desde arriba, con «Subir arriba» y «Cerrar» siempre a la vista */
+#newsTitle{outline:none}
+dialog .newsrow{position:sticky;bottom:-22px;background:var(--card);margin:0 -24px -22px;padding:10px 24px 16px;border-top:1px solid color-mix(in srgb,var(--ink) 10%,transparent);justify-content:flex-end;gap:8px}
+#newsTop[hidden]{display:none}

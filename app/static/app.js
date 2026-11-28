@@ -865,19 +865,36 @@ function paintVersions() {
     `<span class="madeby">💛 ${t('Proyecto sin ánimo de lucro, gratis y sin anuncios')} · 🤖 ${t('App creada con ayuda de inteligencia artificial (IA)')} · © 2026 <span translate="no">IA Online Apps</span> · ${t('Uso personal no comercial')}</span>`;
   $('footNews').onclick = e => { e.preventDefault(); showNews(); };
 }
-async function showNews(since) {
+async function showNews(since, onlyLast) {
   const d = await api('/api/novedades?lang=' + LANG);
-  const list = since ? d.novedades.filter(n => newer(n.version, since)) : d.novedades;
-  if (!list.length) return;
-  $('newsTitle').textContent = since ? t('MascotasPanel se ha actualizado a la') + ' ' + d.version : t('Novedades de MascotasPanel');
+  const list = onlyLast ? d.novedades.slice(0, 1) : since ? d.novedades.filter(n => newer(n.version, since)) : d.novedades;
+  if (!list.length) return false;
+  const upd = !!(since || onlyLast);
+  $('newsTitle').textContent = upd ? t('MascotasPanel se ha actualizado a la') + ' ' + d.version : t('Novedades de MascotasPanel');
+  // la versión más nueva va siempre arriba del todo
   $('newsBody').innerHTML = list.map(n => `<h3>${t('Versión')} ${esc(n.version)}${n.version === d.version ? ` <span class="tag">${t('la tuya')}</span>` : ''}</h3>
     <ul>${n.items.map(i => `<li>${md(i)}</li>`).join('')}</ul>`).join('');
-  $('news').showModal();
+  const dlg = $('news');
+  dlg.showModal();
+  // showModal pone el foco en «Cerrar» (abajo del todo) y el navegador baja hasta allí: volvemos arriba
+  $('newsTitle').focus({preventScroll: true}); dlg.scrollTop = 0;
+  requestAnimationFrame(() => { dlg.scrollTop = 0; paintNewsTop(); });
+  return true;
 }
-function newsIfUpdated() {
-  const k = 'mascotaspanel-visto'; let seen = null;
-  try { seen = localStorage.getItem(k); localStorage.setItem(k, info.version); } catch (e) {}
-  if (seen && seen !== info.version && newer(info.version, seen)) showNews(seen).catch(() => {});
+function paintNewsTop() { const d = $('news'); $('newsTop').hidden = d.scrollTop < 200; }
+$('news').addEventListener('scroll', paintNewsTop);
+$('newsTop').onclick = () => $('news').scrollTo({top: 0, behavior: 'smooth'});
+async function newsIfUpdated() {
+  // Se mira la versión que ya vio en su cuenta (vale en todos sus aparatos) y, si no, la de este navegador
+  const k = 'mascotaspanel-visto'; let local = null;
+  try { local = localStorage.getItem(k); localStorage.setItem(k, info.version); } catch (e) {}
+  if (!me) return;
+  const seen = info.seen_version || local || '';
+  if (seen === info.version) return;
+  try {
+    const shown = seen && newer(info.version, seen) ? await showNews(seen) : await showNews(null, true);
+    if (shown !== undefined) api('/api/news-seen', {method: 'POST', body: {}}).catch(() => {});
+  } catch (e) {}
 }
 $('newsBtn').onclick = () => showNews();
 $('vChip').onclick = () => showNews();

@@ -2,6 +2,12 @@
 
 <!-- La versión más nueva va arriba. El número está en app/VERSION y se ve en Mi cuenta → Acerca de. -->
 
+## 1.0.17
+- **La ventana de novedades sale siempre al actualizar.** Ahora tu cuenta recuerda qué versión has visto, así que te sale
+  en el móvil, en la app y en el ordenador, aunque sea la primera vez que entras desde ese aparato.
+- **Novedades desde arriba:** la ventana se abre arriba del todo, con la versión más nueva la primera. Al bajar sale un botón
+  **«⬆ Subir arriba»**, y «Cerrar» se ve siempre.
+
 ## 1.0.16
 - **«📍 Lo he visto aquí» en la ficha de una mascota perdida:** cualquiera, sin cuenta, marca en el mapa dónde la ha visto
   y cuándo («ahora mismo», «hace media hora»… u otra hora), con una nota si quiere. Sale en la ficha, en un mapa y en una lista

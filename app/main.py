@@ -249,7 +249,16 @@ def me(request: Request):
     if u:
         info["unread"] = db.q1("SELECT COUNT(*) n FROM messages WHERE user_id=? AND read=0", u["id"])["n"]
         info["transfers"] = _transfers_for(u)
+        info["seen_version"] = u["seen_version"] or ""
     return info | {"user": user_json(u) if u else None}
+
+
+@app.post("/api/news-seen")
+def news_seen(request: Request):
+    """Ya ha visto las novedades de esta versión (se guarda en la cuenta, así vale en todos sus móviles y ordenadores)."""
+    u = user_or_401(request)
+    db.run("UPDATE users SET seen_version=? WHERE id=?", VERSION, u["id"])
+    return {"ok": True}
 
 
 @app.post("/api/login")
@@ -402,6 +411,7 @@ async def register(request: Request):
     cur = db.run("INSERT INTO users(username,email,name,phone,zone,pw_hash,recovery_hash,is_admin,status,consent,created,kind,age_ok,consent_v) "
                  "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", username, email, name, phone, text(d.get("zone"), 80), db.hash_pw(pw),
                  db.hash_recovery(code), int(first), "approved", now, now, kind, now, CONSENT_V)
+    db.run("UPDATE users SET seen_version=? WHERE id=?", VERSION, cur.lastrowid)  # cuenta nueva: no hace falta enseñarle novedades
     if kind == "org":
         legal = {"legal_name": text(d.get("org_legal"), 120), "cif": org_cif, "reg_number": text(d.get("org_reg"), 60),
                  "zoo_number": text(d.get("org_zoo"), 60)}
@@ -1823,7 +1833,7 @@ def robots():
 @app.get("/panel", response_class=HTMLResponse)
 def panel():
     html_ = (STATIC / "index.html").read_text(encoding="utf-8")
-    for f in ("style.css", "theme.js", "i18n.js", "app.js", "poster.js", "pdf.js", "vendor/leaflet/leaflet.js", "vendor/leaflet/leaflet.css"):
+    for f in ("style.css", "theme.js", "i18n.js", "app.js", "poster.js", "pdf.js", "tracker.js", "ptr.js", "vendor/leaflet/leaflet.js", "vendor/leaflet/leaflet.css"):
         html_ = html_.replace(f"/static/{f}", f"/static/{f}?v={VERSION}")
     return HTMLResponse(html_, headers={"Cache-Control": "no-cache"})
 

@@ -9,7 +9,7 @@ Raspberry Pi. En español y en inglés.
 
 | Web | App (solo Android) |
 |---|---|
-| **1.0.16** ([novedades](app/NOVEDADES.md)) | **1.1** ([descargar la APK, solo Android](https://github.com/iaonlineapps/mascotaspanel/raw/main/android/dist/MascotasPanel.apk)) |
+| **1.0.17** ([novedades](app/NOVEDADES.md)) | **1.1** ([descargar la APK, solo Android](https://github.com/iaonlineapps/mascotaspanel/raw/main/android/dist/MascotasPanel.apk)) |
 
 > 📱 **La app es solo para Android** (móviles y tablets Android). En iPhone o iPad no se puede instalar: usa la web y añádela a la pantalla de inicio (Compartir → «Añadir a pantalla de inicio»).
 

@@ -392,6 +392,7 @@ const EN = {
   'Esa cuenta ya no tiene la sesión abierta aquí. Entra con su contraseña': 'That account is no longer signed in here. Sign in with its password',
   'Escribe solo la dirección, por ejemplo https://mascotas.midominio.com': 'Type only the address, for example https://pets.mydomain.com',
   'Petición no permitida': 'Request not allowed',
+  "⬆ Subir arriba": "⬆ Back to top",
   // 1.0.16: localizador y avistamientos
   "📡 ¿Lleva un localizador?": "📡 Does it wear a tracker?",
   "No": "No",
