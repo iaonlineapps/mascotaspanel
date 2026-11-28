@@ -169,6 +169,10 @@ def init():
     pk = {r["name"] for r in q("PRAGMA table_info(parks)")}
     if "dupe_of" not in pk:  # «es otro distinto» a pesar de estar muy cerca de este: que lo mire el administrador
         run("ALTER TABLE parks ADD COLUMN dupe_of INTEGER DEFAULT 0")
+    ocols = {r["name"] for r in q("PRAGMA table_info(orgs)")}
+    for c in ("legal_name", "cif", "reg_number", "zoo_number"):  # datos legales de la asociación (públicos)
+        if c not in ocols:
+            run(f"ALTER TABLE orgs ADD COLUMN {c} TEXT DEFAULT ''")
     ucols = {r["name"] for r in q("PRAGMA table_info(users)")}
     if "avatar" not in ucols:  # foto de perfil (opcional)
         run("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''")

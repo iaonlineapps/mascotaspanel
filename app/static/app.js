@@ -62,7 +62,8 @@ $('authForm').onsubmit = async e => {
     if (registering) {
       code = (await api('/api/register', {method: 'POST', body: {username: $('uUser').value.trim(), email: $('uEmail').value.trim(),
         password: body.password, name: $('uNameR').value, phone: $('uPhone').value, zone: $('uZone').value, accept: $('uAccept').checked,
-        age_ok: $('uAge').checked, kind: regKind, org_name: $('uOrg').value}})).recovery;
+        age_ok: $('uAge').checked, kind: regKind, org_name: $('uOrg').value,
+        org_legal: $('uOrgLegal').value, org_cif: $('uOrgCif').value, org_reg: $('uOrgReg').value, org_zoo: $('uOrgZoo').value}})).recovery;
     }
     const adding = !$('authCancel').hidden;
     await api('/api/login', {method: 'POST', body});
@@ -151,13 +152,15 @@ async function start() {
   if (!me) return showAuth();
   $('auth').hidden = true; $('app').hidden = false;
   $('adminTab').hidden = !me.is_admin;
+  if (me.is_admin) api('/api/admin/orgs').then(paintOrgAdm).catch(() => {});
+  requestAnimationFrame(tabsHint);
   paintMe(); paintVersions(); newsIfUpdated(); buildHeadings(); paintBadge(info.unread || 0); loadAdopt(); transfers = info.transfers || []; paintTransfers();
   await loadPets();
   const m = /^#m(\d+)$/.exec(location.hash);
   const kh = /^#k(\d+)$/.exec(location.hash), kn = /^#nuevo=(-?[\d.]+),(-?[\d.]+)$/.exec(location.hash);
   if (kh) { showTab('parks'); kEdit(Number(kh[1])); }
   else if (kn) { showTab('parks'); setTimeout(() => kAddHere(Number(kn[1]), Number(kn[2])), 300); history.replaceState(null, '', '/panel#pipicanes'); }
-  else if (m && pets.find(p => p.id === Number(m[1]))) openPet(Number(m[1])); else showTab(location.hash === '#pipicanes' ? 'parks' : location.hash === '#mascotas' ? 'pets' : me.is_admin ? 'admin' : 'home');
+  else if (m && pets.find(p => p.id === Number(m[1]))) openPet(Number(m[1])); else showTab(location.hash === '#pipicanes' ? 'parks' : location.hash === '#asociaciones' ? 'orgs' : location.hash === '#mascotas' ? 'pets' : me.is_admin ? 'admin' : 'home');
 }
 function paintMe() {
   $('goAdmin').hidden = !me.is_admin;
@@ -188,6 +191,7 @@ function paintOrg() {
   $('oName').value = o.name; $('oCity').value = o.city; $('oAbout').value = o.about; $('oWeb').value = o.web;
   $('oPhone').value = o.phone; $('oShowPhone').checked = o.show_phone; $('oWa').checked = o.whatsapp;
   $('oTg').value = o.telegram ? '@' + o.telegram : ''; $('oEmail').value = o.email; $('oShowEmail').checked = o.show_email;
+  $('oLegal').value = o.legal_name || ''; $('oCif').value = o.cif || ''; $('oReg').value = o.reg_number || ''; $('oZoo').value = o.zoo_number || '';
   $('oLogo').innerHTML = o.logo ? `<img src="${esc(o.logo)}" alt="">` : '<span>🏡</span>'; $('oLogoDel').hidden = !o.logo;
   $('oPublic').hidden = !o.verified; $('oPublic').href = '/asociacion/' + o.id;
 }
@@ -196,7 +200,8 @@ $('orgForm').onsubmit = async e => {
   try {
     me.org = await api('/api/org', {method: 'PUT', body: {name: $('oName').value, city: $('oCity').value, about: $('oAbout').value, web: $('oWeb').value,
       phone: $('oPhone').value, show_phone: $('oShowPhone').checked, whatsapp: $('oWa').checked, telegram: $('oTg').value,
-      email: $('oEmail').value, show_email: $('oShowEmail').checked}});
+      email: $('oEmail').value, show_email: $('oShowEmail').checked,
+      legal_name: $('oLegal').value, cif: $('oCif').value, reg_number: $('oReg').value, zoo_number: $('oZoo').value}});
     paintOrg(); toast('Guardado');
   } catch (err) { $('oErr').textContent = err.message; }
 };
@@ -233,8 +238,52 @@ function showTab(tab) {
   if (tab === 'admin') loadAdmin();
   if (tab === 'inbox') loadInbox();
   if (tab === 'parks') { history.replaceState(null, '', '/panel#pipicanes'); loadParks(); }
+  if (tab === 'orgs') { history.replaceState(null, '', '/panel#asociaciones'); loadOrgs(); }
+  const sb = document.querySelector(`#tabs button[data-tab="${tab === 'pet' ? 'pets' : tab}"]`);
+  if (sb) { const n = $('tabs'); n.scrollLeft = sb.offsetLeft - (n.clientWidth - sb.offsetWidth) / 2; tabsHint(); }
   scrollTo(0, 0);
 }
+// En el móvil las pestañas no caben: se deslizan de lado. Una flecha y un difuminado avisan de que hay más.
+function tabsHint() {
+  const n = $('tabs'), more = n.scrollWidth - n.clientWidth - n.scrollLeft > 4;
+  n.classList.toggle('more', more); n.classList.toggle('less', n.scrollLeft > 4);
+}
+$('tabs').addEventListener('scroll', tabsHint, {passive: true}); addEventListener('resize', tabsHint);
+$('tabsMore').onclick = () => $('tabs').scrollBy({left: $('tabs').clientWidth * 0.7, behavior: 'smooth'});
+
+// ---------- asociaciones ----------
+const legalLine = o => [o.legal_name && esc(o.legal_name), o.cif && 'CIF ' + esc(o.cif)].filter(Boolean).join(' · ');
+const orgLogo = o => o.logo ? `<img class="orglogo" src="${esc(o.logo)}" alt="">` : '<span class="orglogo none">🏡</span>';
+async function loadOrgs() {
+  const list = await api('/api/orgs');
+  $('orgList').innerHTML = list.map(o => `<a class="orgcard oc" href="/asociacion/${o.id}">${orgLogo(o)}<div>
+    <h3 translate="no">${esc(o.name)}</h3><span class="tag ok">✔ ${esc(t('Verificada'))}</span>
+    ${o.city ? `<p class="small">📍 ${esc(o.city)}</p>` : ''}${o.about ? `<p class="about">${esc(o.about.slice(0, 180))}${o.about.length > 180 ? '…' : ''}</p>` : ''}
+    ${legalLine(o) ? `<p class="small">🏛️ ${legalLine(o)}</p>` : ''}
+    ${[o.phone && '📞 ' + esc(o.phone), o.email && '✉️ ' + esc(o.email), o.web && '🌐 ' + esc(o.web.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => `<p class="small">${x}</p>`).join('')}
+    <p class="nadopt">💛 ${o.n_adopt} ${esc(t(o.n_adopt === 1 ? 'animal en adopción' : 'en adopción'))}</p></div></a>`).join('')
+    || `<div class="empty"><b>${esc(t('Todavía no hay asociaciones verificadas'))}</b>${esc(t('¿Eres una asociación o protectora? Regístrate como asociación y, cuando la verifiquemos, saldrá aquí con sus animales.'))}</div>`;
+  $('orgAdm').hidden = !me.is_admin;
+  if (me.is_admin) paintOrgAdm(await api('/api/admin/orgs'));
+}
+function paintOrgAdm(all) {
+  const wait = all.filter(o => !o.verified).length;
+  $('oBadge').hidden = !wait; $('oBadge').textContent = wait;
+  const dd = (k, v) => v ? `<dt>${esc(t(k))}</dt><dd translate="no">${esc(v)}</dd>` : '';
+  $('orgAdmList').innerHTML = all.map(o => `<div class="orgrow${o.verified ? '' : ' wait'}">${orgLogo(o)}<div class="ot">
+    <b translate="no">${esc(o.name)}</b> <span class="tag ${o.verified ? 'ok' : 'wait'}">${esc(t(o.verified ? '✔ Verificada' : 'Pendiente de verificar'))}</span>
+    <dl>${dd('Nombre oficial', o.legal_name)}${dd('CIF', o.cif)}${dd('Registro de asociaciones', o.reg_number)}${dd('Núcleo zoológico', o.zoo_number)}
+    ${dd('Localidad', o.city)}${dd('Lleva la cuenta', `${o.user.name} (@${o.user.username}) · ${o.user.email}`)}${dd('En adopción', String(o.n_adopt))}</dl>
+    ${!o.legal_name && !o.cif && !o.reg_number ? `<p class="hint">⚠️ ${esc(t('No ha puesto datos legales. Pídeselos antes de verificarla.'))}</p>` : ''}</div>
+    <div class="act"><button class="${o.verified ? 'ghost' : 'ok'} small" data-ov="${o.id}" data-a="${o.verified ? 'unverify' : 'verify'}">${esc(t(o.verified ? 'Quitar verificación' : '✅ Verificar'))}</button>
+    ${o.verified ? `<a class="btn ghost small" href="/asociacion/${o.id}">${esc(t('Ver su página'))}</a>` : ''}</div></div>`).join('')
+    || `<p class="hint">${esc(t('Todavía no se ha registrado ninguna asociación.'))}</p>`;
+}
+$('orgAdmList').onclick = async e => {
+  const b = e.target.closest('[data-ov]'); if (!b) return;
+  try { await api('/api/admin/users/' + b.dataset.ov, {method: 'POST', body: {action: b.dataset.a}});
+    toast(b.dataset.a === 'verify' ? 'Asociación verificada' : 'Verificación quitada'); loadOrgs(); } catch (err) { toast(err.message); }
+};
 
 // ---------- lista de mascotas ----------
 async function loadPets() { pets = await api('/api/pets'); }

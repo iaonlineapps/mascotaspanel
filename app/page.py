@@ -17,6 +17,16 @@ SEX = {"macho": ("Macho", "Male"), "hembra": ("Hembra", "Female")}
 SIZE = {"pequeno": ("Pequeño", "Small"), "mediano": ("Mediano", "Medium"), "grande": ("Grande", "Large")}
 
 EN = {
+    "Asociaciones": "Associations", "Verificada": "Verified", "Nombre oficial": "Official name", "Datos legales": "Legal details",
+    "Registro de asociaciones": "Associations register no.", "Núcleo zoológico": "Animal facility (núcleo zoológico) no.",
+    "en adopción": "up for adoption", "animal en adopción": "animal up for adoption",
+    "Todavía no hay asociaciones verificadas": "There are no verified associations yet",
+    "¿Eres una asociación o protectora? Regístrate como asociación y, cuando la verifiquemos, saldrá aquí con sus animales.":
+        "Are you an association or shelter? Sign up as an association and, once we verify it, it will appear here with its animals.",
+    "Asociaciones y protectoras verificadas: quiénes son, dónde están, cómo contactar y sus animales en adopción.":
+        "Verified associations and shelters: who they are, where they are, how to contact them and their animals up for adoption.",
+    "Todas están verificadas por el administrador. Toca una para ver sus datos y sus animales en adopción.":
+        "All of them are verified by the administrator. Tap one to see its details and its animals up for adoption.",
     "Añadir pipicán aquí": "Add a dog park here",
     "¿Estás en un pipicán que no sale en el mapa?": "Are you at a dog park that isn't on the map?",
     "Uso personal no comercial": "Personal, non-commercial use",
@@ -152,6 +162,7 @@ def _tabs(lang, on, total=None, total_lost=None, parks=None, url=None):
     return ('<nav class="vtabs">' + a("registro", url(ver="", pag=1) if url else f"/{q}", f'🐾 {L(lang, "Registro")}', total)
             + a("perdidas", url(ver="perdidas", pag=1) if url else f'/?ver=perdidas{"&lang=en" if lang == "en" else ""}', f'🔎 {L(lang, "Perdidas")}', total_lost)
             + a("adopta", f"/adopta{q}", f'🏡 {L(lang, "Adopción")}')
+            + a("asociaciones", f"/asociaciones{q}", f'🤝 {L(lang, "Asociaciones")}')
             + a("pipicanes", f"/pipicanes{q}", f'🌳 {L(lang, "Pipicanes")}', parks) + "</nav>")
 
 
@@ -557,6 +568,42 @@ def render_adopt(rows, orgs, lang, especie="") -> str:
 </main>{_foot(lang)}</body></html>"""
 
 
+def _org_legal(o, lang):
+    """Datos legales que la asociación ha apuntado: nombre oficial, CIF y números de registro."""
+    rows = [(L(lang, "Nombre oficial"), o.get("legal_name")), ("CIF", o.get("cif")),
+            (L(lang, "Registro de asociaciones"), o.get("reg_number")), (L(lang, "Núcleo zoológico"), o.get("zoo_number"))]
+    dl = "".join(f"<dt>{k}</dt><dd translate=\"no\">{esc(v)}</dd>" for k, v in rows if v)
+    return f'<section class="orglegal"><h2>🏛️ {L(lang, "Datos legales")}</h2><dl>{dl}</dl></section>' if dl else ""
+
+
+def render_orgs(orgs, lang) -> str:
+    """«Asociaciones»: todas las asociaciones y protectoras verificadas, con sus datos y sus animales en adopción."""
+    q = "?lang=en" if lang == "en" else ""
+    def card(o):
+        n = o["n_adopt"]
+        about = esc(o["about"][:180] + ("…" if len(o["about"]) > 180 else ""))
+        city = f'<p class="small">📍 {esc(o["city"])}</p>' if o["city"] else ""
+        legal = " · ".join(x for x in (esc(o["legal_name"]), f'CIF {esc(o["cif"])}' if o["cif"] else "") if x)
+        return (f'<article class="orgcard"><a class="oc" href="/asociacion/{o["id"]}{q}">{_org_logo(o)}<div><h2 translate="no">{esc(o["name"])}</h2>'
+                f'<span class="tag ok">✔ {L(lang, "Verificada")}</span>'
+                f'{city}{f"<p class=about>{about}</p>" if about else ""}{f"<p class=small>🏛️ {legal}</p>" if legal else ""}'
+                f'<p class="nadopt">💛 {n} {L(lang, "en adopción") if n != 1 else L(lang, "animal en adopción")}</p></div></a>'
+                f'<div class="orgbtns">{_org_buttons(o, lang)}</div></article>')
+    cards = "".join(card(o) for o in orgs) or (
+        f'<p class="empty"><b>{L(lang, "Todavía no hay asociaciones verificadas")}.</b><br>'
+        f'{L(lang, "¿Eres una asociación o protectora? Regístrate como asociación y, cuando la verifiquemos, saldrá aquí con sus animales.")}</p>')
+    return _head(f"{L(lang, 'Asociaciones y protectoras')} · MascotasPanel", lang,
+                 desc=L(lang, "Asociaciones y protectoras verificadas: quiénes son, dónde están, cómo contactar y sus animales en adopción.")) + f"""
+<body class="home"><header class="bar"><a class="brand" href="/{q}">{LOGO}<span translate="no">Mascotas<b>Panel</b></span></a>
+{_applink(lang)}{_langlink(lang, "/asociaciones")}<a class="btn" href="/panel">{L(lang, 'Entrar')}</a></header>
+<main class="lostlist">{_tabs(lang, "asociaciones")}
+<h1>🤝 {L(lang, 'Asociaciones y protectoras')}</h1>
+<p class="lead">{L(lang, 'Todas están verificadas por el administrador. Toca una para ver sus datos y sus animales en adopción.')}</p>
+<div class="orgcards">{cards}</div>
+<p class="small">{L(lang, '¿Eres una asociación o protectora? Regístrate como asociación y, cuando la verifiquemos, saldrá aquí con sus animales.')} <a href="/panel">{L(lang, 'Entrar')}</a></p>
+</main>{_foot(lang)}</body></html>"""
+
+
 def render_org(o, rows, lang) -> str:
     q = "?lang=en" if lang == "en" else ""
     cards = "".join(_adopt_card(r, lang, i) for i, r in enumerate(rows)) or f'<p class="empty">{L(lang, "Ahora mismo no hay animales en adopción")}.</p>'
@@ -565,9 +612,9 @@ def render_org(o, rows, lang) -> str:
 {_applink(lang)}{_langlink(lang, f"/asociacion/{o['id']}")}<a class="btn" href="/panel">{L(lang, 'Entrar')}</a></header>
 <main class="lostlist"><section class="orghead">{_org_logo(o)}<div><h1 translate="no">{esc(o["name"])}</h1>
 {f'<p class="small">📍 {esc(o["city"])}</p>' if o["city"] else ''}{f'<p class="about">{esc(o["about"])}</p>' if o["about"] else ''}
-<div class="orgbtns">{_org_buttons(o, lang)}</div></div></section>
+<div class="orgbtns">{_org_buttons(o, lang)}</div></div></section>{_org_legal(o, lang)}
 <h2>{L(lang, 'Sus animales en adopción')}</h2><div class="grid">{cards}</div>
-<p><a href="/adopta{q}">← {L(lang, 'Animales en adopción')}</a></p></main>{_foot(lang)}</body></html>"""
+<p><a href="/asociaciones{q}">← {L(lang, 'Asociaciones y protectoras')}</a> · <a href="/adopta{q}">{L(lang, 'Animales en adopción')}</a></p></main>{_foot(lang)}</body></html>"""
 
 
 def render_adopt_pet(r, o, lang, base="") -> str:

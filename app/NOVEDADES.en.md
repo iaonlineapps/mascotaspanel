@@ -1,5 +1,14 @@
 # What's new in MascotasPanel
 
+## 1.0.15
+- **New 🤝 Associations section** in the menu and on the public site (/asociaciones): every verified association and shelter
+  with its logo, town, about text, public contact, legal details and how many animals it has up for adoption.
+- **Legal details for associations:** official name, CIF, associations register no. and animal facility no. They can be added
+  when signing up and in «My account → My association», and are shown on its public page.
+- **For the administrator:** «Associations» lets you verify them or remove the verification, after checking their legal details
+  and who runs the account. Pending ones come first, with a counter on the tab.
+- **App menu fixed:** the tabs are no longer cut off. They slide sideways and an orange arrow shows there are more.
+
 ## 1.0.14
 - **Easier administration on the phone:** shortcuts at the top (👥 People, 🐾 All profiles, 🌳 Dog parks, ⚙️ Settings,
   📲 Telegram) take you straight to each part, without scrolling through the whole summary.

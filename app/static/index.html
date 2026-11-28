@@ -31,6 +31,12 @@
    <div id="orgFields" hidden>
     <label for="uOrg">Nombre de la asociación o protectora</label>
     <input id="uOrg" maxlength="80" placeholder="Protectora Huellas de Valencia">
+    <details class="legalreg"><summary>Datos legales <span class="opt">(opcionales, ayudan a verificaros antes)</span></summary>
+     <label for="uOrgLegal">Nombre oficial (como en el registro)</label><input id="uOrgLegal" maxlength="120" placeholder="Asociación Protectora Huellas de Valencia">
+     <label for="uOrgCif">CIF</label><input id="uOrgCif" maxlength="12" placeholder="G12345678" autocapitalize="characters">
+     <label for="uOrgReg">Nº de registro de asociaciones</label><input id="uOrgReg" maxlength="60" placeholder="CV-01-012345-V">
+     <label for="uOrgZoo">Nº de núcleo zoológico <span class="opt">(si tenéis)</span></label><input id="uOrgZoo" maxlength="60">
+    </details>
     <p class="hint">Podrás publicar animales en adopción cuando el administrador verifique la asociación.</p>
    </div>
    <label for="uNameR" id="uNameLbl">Tu nombre <span class="opt">(solo el nombre, sin apellidos)</span></label>
@@ -108,15 +114,16 @@
    </div>
   </div>
  </header>
- <nav class="tabs" id="tabs" aria-label="Secciones">
+ <div class="tabswrap"><nav class="tabs" id="tabs" aria-label="Secciones">
   <button data-tab="home" class="sel">🏠 Inicio</button>
   <button data-tab="admin" id="adminTab" hidden>📊 Administración</button>
   <span class="tabgap"></span>
   <button data-tab="pets">Mis mascotas</button>
   <button data-tab="inbox">Avisos <span class="nbadge" id="nBadge" hidden></span></button>
   <button data-tab="parks">Pipicanes</button>
+  <button data-tab="orgs">Asociaciones <span class="nbadge" id="oBadge" hidden></span></button>
   <button data-tab="account">Mi cuenta</button>
- </nav>
+ </nav><button type="button" class="tabsmore" id="tabsMore" aria-label="Más pestañas" title="Más pestañas">›</button></div>
 
  <main class="wrap">
   <!-- Inicio de cada persona -->
@@ -295,6 +302,14 @@
   </div>
 
   <!-- Busca tu pipicán -->
+  <div data-pane="orgs" hidden>
+   <div class="dhead"><div><h2>🤝 <span>Asociaciones y protectoras</span></h2><p class="hint">Todas están verificadas por el administrador. Toca una para ver sus datos y sus animales en adopción.</p></div>
+    <a class="btn ghost small" href="/asociaciones">Ver la página pública</a></div>
+   <section class="card" id="orgAdm" hidden><div class="whead"><h3>🛡️ <span>Gestión de asociaciones</span></h3></div>
+    <p class="hint">Comprueba sus datos legales antes de verificarla. Solo las verificadas salen al público y pueden publicar animales en adopción.</p>
+    <div class="orgadm" id="orgAdmList"></div></section>
+   <div class="orgcards" id="orgList"></div>
+  </div>
   <div data-pane="parks" hidden>
    <div class="head"><h2>🌳 Busca tu pipicán</h2><a class="btn ghost" href="/pipicanes">Ver el mapa de pipicanes</a></div>
    <section class="card allparks">
@@ -374,6 +389,13 @@
        <label for="oTg">Usuario de Telegram <span class="opt">(no enseña el teléfono)</span></label><input id="oTg" maxlength="40" placeholder="@protectora_valencia" autocapitalize="off">
        <label for="oEmail">Correo de la asociación</label><input id="oEmail" type="email" maxlength="120">
        <label class="inline"><input type="checkbox" id="oShowEmail"> Que se vea el correo</label>
+      </fieldset>
+      <fieldset class="contact"><legend>Datos legales</legend>
+       <p class="hint">Salen en la página pública de la asociación para que la gente sepa que sois una entidad registrada. Rellena los que tengáis.</p>
+       <label for="oLegal">Nombre oficial (como en el registro)</label><input id="oLegal" maxlength="120">
+       <label for="oCif">CIF</label><input id="oCif" maxlength="12" placeholder="G12345678" autocapitalize="characters">
+       <label for="oReg">Nº de registro de asociaciones</label><input id="oReg" maxlength="60">
+       <label for="oZoo">Nº de núcleo zoológico <span class="opt">(si tenéis)</span></label><input id="oZoo" maxlength="60">
       </fieldset>
       <div class="err" id="oErr" role="alert"></div>
       <div class="row"><button type="submit">Guardar mi asociación</button><a class="btn ghost" id="oPublic" hidden>Ver su página</a></div>
